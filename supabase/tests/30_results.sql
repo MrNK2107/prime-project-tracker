@@ -167,7 +167,7 @@ select throws_ok(
   $$select public.submit_result('dddddddd-0000-0000-0000-000000000001', 'won', 'd', '   ')$$,
   '22023', null, 'submit without required proof fails (blank proof)');
 select throws_ok(
-  $$select public.submit_result('dddddddd-0000-0000-0000-000000000001', '  ', 'd', 'proofs/s1/cert.pdf')$$,
+  $$select public.submit_result('dddddddd-0000-0000-0000-000000000001', '  ', 'd', '11111111-0000-0000-0000-000000000001/0c000000-0000-4000-8000-000000000001.pdf')$$,
   '22023', null, 'submit with an empty outcome fails');
 select throws_ok(
   $$insert into public.results (invitation_id, revision, outcome, status)
@@ -177,7 +177,7 @@ reset role;
 
 select tests.as_user('11111111-0000-0000-0000-000000000002');  -- S2
 select throws_ok(
-  $$select public.submit_result('dddddddd-0000-0000-0000-000000000001', 'won', 'd', 'proofs/s2/x.pdf')$$,
+  $$select public.submit_result('dddddddd-0000-0000-0000-000000000001', 'won', 'd', '11111111-0000-0000-0000-000000000002/0c000000-0000-4000-8000-000000000005.pdf')$$,
   '42501', null, 'submit_result by another student fails');
 reset role;
 
@@ -185,16 +185,16 @@ reset role;
 select tests.as_user('11111111-0000-0000-0000-000000000001');
 select lives_ok(
   $$insert into tests.ids select 'inv1_r1', public.submit_result(
-      'dddddddd-0000-0000-0000-000000000001', 'Winner', 'First place, 120 teams', 'proofs/s1/cert.pdf')$$,
+      'dddddddd-0000-0000-0000-000000000001', 'Winner', 'First place, 120 teams', '11111111-0000-0000-0000-000000000001/0c000000-0000-4000-8000-000000000001.pdf')$$,
   'joined student submits a result with the required proof');
 select is(
   (select row(revision, status, confirmed_by, confirmed_at, proof_path, outcome)::text from public.results
     where id = (select id from tests.ids where name = 'inv1_r1')),
   row(1, 'submitted'::public.result_status, null::uuid, null::timestamptz,
-      'proofs/s1/cert.pdf', 'Winner')::text,
+      '11111111-0000-0000-0000-000000000001/0c000000-0000-4000-8000-000000000001.pdf', 'Winner')::text,
   'result stored as revision 1, submitted, unconfirmed');
 select throws_ok(
-  $$select public.submit_result('dddddddd-0000-0000-0000-000000000001', 'Winner', null, 'proofs/s1/cert.pdf')$$,
+  $$select public.submit_result('dddddddd-0000-0000-0000-000000000001', 'Winner', null, '11111111-0000-0000-0000-000000000001/0c000000-0000-4000-8000-000000000001.pdf')$$,
   '22023', null, 'second submit while a result is awaiting review fails');
 reset role;
 
@@ -250,7 +250,7 @@ select is(
   'sent back result returns to the student with the note');
 select lives_ok(
   $$insert into tests.ids select 'inv1_r2', public.submit_result(
-      'dddddddd-0000-0000-0000-000000000001', 'Winner', 'First place', 'proofs/s1/cert-named.pdf')$$,
+      'dddddddd-0000-0000-0000-000000000001', 'Winner', 'First place', '11111111-0000-0000-0000-000000000001/0c000000-0000-4000-8000-000000000002.pdf')$$,
   'student resubmits after send back');
 reset role;
 select is(tests.revs('dddddddd-0000-0000-0000-000000000001'),
@@ -329,18 +329,18 @@ select throws_ok(
   '22023', null, 'correction on an item requiring proof needs proof');
 select throws_ok(
   $$select public.request_correction((select id from tests.ids where name = 'inv1_r1'),
-      'Runner-up', 'Second place', 'proofs/s1/c.pdf')$$,
+      'Runner-up', 'Second place', '11111111-0000-0000-0000-000000000001/0c000000-0000-4000-8000-000000000003.pdf')$$,
   '22023', null, 'correction of a non-confirmed (sent back) row fails');
 select lives_ok(
   $$insert into tests.ids select 'inv1_r3', public.request_correction(
-      (select id from tests.ids where name = 'inv1_r2'), 'Runner-up', 'Second place', 'proofs/s1/c.pdf')$$,
+      (select id from tests.ids where name = 'inv1_r2'), 'Runner-up', 'Second place', '11111111-0000-0000-0000-000000000001/0c000000-0000-4000-8000-000000000003.pdf')$$,
   'student requests a correction of the confirmed result');
 select throws_ok(
   $$select public.request_correction((select id from tests.ids where name = 'inv1_r2'),
-      'Third', 'x', 'proofs/s1/d.pdf')$$,
+      'Third', 'x', '11111111-0000-0000-0000-000000000001/0c000000-0000-4000-8000-000000000004.pdf')$$,
   '22023', null, 'second correction while one is pending fails');
 select throws_ok(
-  $$select public.submit_result('dddddddd-0000-0000-0000-000000000001', 'Third', null, 'proofs/s1/d.pdf')$$,
+  $$select public.submit_result('dddddddd-0000-0000-0000-000000000001', 'Third', null, '11111111-0000-0000-0000-000000000001/0c000000-0000-4000-8000-000000000004.pdf')$$,
   '22023', null, 'submit_result while a correction is pending fails');
 reset role;
 select is(tests.revs('dddddddd-0000-0000-0000-000000000001'),
@@ -350,7 +350,7 @@ select is(tests.revs('dddddddd-0000-0000-0000-000000000001'),
 select tests.as_user('11111111-0000-0000-0000-000000000002');  -- S2
 select throws_ok(
   $$select public.request_correction((select id from tests.ids where name = 'inv1_r2'),
-      'x', 'x', 'proofs/s2/x.pdf')$$,
+      'x', 'x', '11111111-0000-0000-0000-000000000002/0c000000-0000-4000-8000-000000000005.pdf')$$,
   '42501', null, 'another student cannot request a correction');
 reset role;
 

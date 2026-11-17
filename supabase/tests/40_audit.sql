@@ -4,7 +4,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(76);
+select plan(77);
 
 -- ---------------------------------------------------------------- helpers
 create schema tests;
@@ -187,7 +187,7 @@ select tests.as_user('11111111-0000-0000-0000-000000000001');  -- S1
 select lives_ok(
   $$insert into tests.ids select 'r1', public.submit_result(
       'dddddddd-0000-0000-0000-000000000001', 'ZQX-SECRET-OUTCOME', 'ZQX-SECRET-DETAILS',
-      'proofs/s1/ZQX-SECRET-PROOF.pdf')$$,
+      '11111111-0000-0000-0000-000000000001/5ec7e700-0000-4000-8000-00000000f001.pdf')$$,
   'S1 submits a result with distinctive text');
 reset role;
 
@@ -239,7 +239,7 @@ select tests.as_user('11111111-0000-0000-0000-000000000001');
 select lives_ok(
   $$insert into tests.ids select 'r2', public.request_correction(
       (select id from tests.ids where name = 'r1'), 'ZQX-SECRET-CORRECTION', 'ZQX-SECRET-CDETAILS',
-      'proofs/s1/ZQX-SECRET-CPROOF.pdf')$$,
+      '11111111-0000-0000-0000-000000000001/5ec7e700-0000-4000-8000-00000000f002.pdf')$$,
   'S1 requests a correction');
 reset role;
 select tests.mark('supersede');
@@ -280,7 +280,10 @@ select is(
 -- ---------------------------------------------------------------- privacy: result text never logged
 select is(
   (select count(*)::int from public.audit_log a where to_jsonb(a)::text like '%ZQX-SECRET%'),
-  0, 'no result outcome, details, proof path or review note appears anywhere in audit_log');
+  0, 'no result outcome, details or review note appears anywhere in audit_log');
+select is(
+  (select count(*)::int from public.audit_log a where to_jsonb(a)::text like '%5ec7e700%'),
+  0, 'no proof path appears anywhere in audit_log');
 select is(
   (select count(*)::int from public.audit_log a where to_jsonb(a)::text like '%ZQX-ITEM%'),
   0, 'no item title or description appears anywhere in audit_log');

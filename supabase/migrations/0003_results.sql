@@ -24,7 +24,7 @@ create table public.results (
   revision      int not null check (revision >= 1),
   outcome       text not null check (btrim(outcome) <> ''),
   details       text,
-  proof_path    text,                 -- object path in storage (Task 6); just text here
+  proof_path    text,                 -- object name in bucket proofs: {student_id}/{uuid}.{pdf|jpg|png}
   status        public.result_status not null default 'submitted',
   review_note   text,
   confirmed_by  uuid references public.profiles (id),
@@ -82,6 +82,24 @@ create trigger results_lock
   before update or delete on public.results
   for each row execute function public.results_lock();
 
+-- ------------------------------------------------------------------ proof path rule
+-- The proof path is supplied by the student. It must name a file in that student's own
+-- folder of the proofs bucket ({student_id}/{uuid}.{pdf|jpg|png}, lowercase, see
+-- lib/proof.ts buildProofPath); otherwise a student could point their result at another
+-- student's file and obtain a signed URL for it through GET /api/proof/[resultId].
+-- Both submit_result and request_correction raise 22023 when this returns false.
+create function public.is_own_proof_path(p_student uuid, p_path text)
+returns boolean
+language sql immutable
+set search_path = ''
+as $$
+  select p_student is not null
+     and p_path ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}\.(pdf|jpg|png)$'
+     and starts_with(p_path, p_student::text || '/');
+$$;
+
+revoke execute on function public.is_own_proof_path(uuid, text) from public, anon, authenticated, service_role;
+
 -- ------------------------------------------------------------------ submit_result
 -- Invited, active student; invitation must be 'joined'. Allowed when the invitation has no
 -- result yet, or its latest revision was sent back (the new revision is n+1). A latest
@@ -100,6 +118,7 @@ set search_path = ''
 as $$
 declare
   v_uid           uuid := (select auth.uid());
+  v_student       uuid;
   v_inv_status    public.invitation_status;
   v_requires_conf boolean;
   v_requires_proof boolean;
@@ -109,8 +128,8 @@ declare
   v_auto          boolean;
   v_id            uuid;
 begin
-  select inv.status, i.requires_confirmation, i.requires_proof
-    into v_inv_status, v_requires_conf, v_requires_proof
+  select inv.student_id, inv.status, i.requires_confirmation, i.requires_proof
+    into v_student, v_inv_status, v_requires_conf, v_requires_proof
   from public.invitations inv
   join public.items i on i.id = inv.item_id
   where inv.id = p_invitation_id
@@ -131,6 +150,9 @@ begin
   end if;
   if v_requires_proof and v_proof is null then
     raise exception 'this item requires a proof file' using errcode = '22023';
+  end if;
+  if v_proof is not null and not coalesce(public.is_own_proof_path(v_student, v_proof), false) then
+    raise exception 'proof file must be in the student''s own folder' using errcode = '22023';
   end if;
 
   select r.revision, r.status into v_last_rev, v_last_status
@@ -244,6 +266,7 @@ set search_path = ''
 as $$
 declare
   v_uid            uuid := (select auth.uid());
+  v_student        uuid;
   v_inv_id         uuid;
   v_revision       int;
   v_status         public.result_status;
@@ -251,8 +274,8 @@ declare
   v_proof          text := nullif(btrim(coalesce(p_proof_path, '')), '');
   v_id             uuid;
 begin
-  select r.invitation_id, r.revision, r.status, i.requires_proof
-    into v_inv_id, v_revision, v_status, v_requires_proof
+  select inv.student_id, r.invitation_id, r.revision, r.status, i.requires_proof
+    into v_student, v_inv_id, v_revision, v_status, v_requires_proof
   from public.results r
   join public.invitations inv on inv.id = r.invitation_id
   join public.items i on i.id = inv.item_id
@@ -275,6 +298,9 @@ begin
   end if;
   if v_requires_proof and v_proof is null then
     raise exception 'this item requires a proof file' using errcode = '22023';
+  end if;
+  if v_proof is not null and not coalesce(public.is_own_proof_path(v_student, v_proof), false) then
+    raise exception 'proof file must be in the student''s own folder' using errcode = '22023';
   end if;
 
   insert into public.results (invitation_id, revision, outcome, details, proof_path, status)

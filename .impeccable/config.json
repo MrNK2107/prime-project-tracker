@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "arial",
+        "createdAt": "2026-11-17T15:07:48.481Z",
+        "reason": "assistant decision: HTML email cannot load web fonts, so system font stack is required in supabase/templates/magic_link.html"
+      }
+    ]
+  }
+}

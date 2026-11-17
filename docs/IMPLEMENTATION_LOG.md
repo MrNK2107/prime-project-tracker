@@ -62,7 +62,8 @@ _(one entry per task is added below as it completes: commits, tests run, review 
   - Until the first real deploy (Task 12), database migration files are edited in place; after it, every change is a new migration.
 - Deferred minors: meeting links are not validated (a `javascript:` link would be a risk, so the faculty screen in Task 9 must only render `https` links); a student's status could still be flipped after a result exists (Task 4 will lock that); more test cases for ended and future-dated links.
 
-## Status: PAUSED (at your request)
+## Status: RESUMED (was paused at your request)
+On resume, the Task 4 implementer had been cut off by a network error and left unfinished, uncommitted files. I resumed the same implementer to verify and finish them rather than starting over. The notes below are the state at the time of the pause.
 - Complete and reviewed: Tasks 1, 2, 3 (last committed code: `f478502`; last log commit: `dd1fca4`).
 - In flight: Task 4 (results, confirmation, corrections). Its implementer was dispatched before the pause and may finish on its own. Nothing from it has been reviewed or logged yet, so treat Task 4 as unverified until it goes through review.
 - Next on resume: review Task 4, then Tasks 5 to 12 in order.

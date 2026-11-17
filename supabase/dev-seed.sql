@@ -38,3 +38,42 @@ insert into public.departments (id, name) values
   ('5eedaaaa-0000-0000-0000-000000000001', 'Computer Science and Engineering'),
   ('5eedaaaa-0000-0000-0000-000000000002', 'Electronics and Communication Engineering');
 insert into public.groups (id, name) values ('5eedbbbb-0000-0000-0000-000000000001', 'Prime Project Team');
+
+-- ------------------------------------------------------------------ demo links, items and results
+-- Dr. Meena Iyer (faculty@college.edu) mentors both students, leads the group and heads CSE.
+insert into public.student_year (student_id, year) values
+  ('5eed0001-0000-0000-0000-000000000001', 2), ('5eed0001-0000-0000-0000-000000000002', 3);
+insert into public.department_memberships (student_id, department_id, valid_from) values
+  ('5eed0001-0000-0000-0000-000000000001', '5eedaaaa-0000-0000-0000-000000000001', '2024-06-01'),
+  ('5eed0001-0000-0000-0000-000000000002', '5eedaaaa-0000-0000-0000-000000000002', '2023-06-01');
+insert into public.hod_assignments (faculty_id, department_id, valid_from) values
+  ('5eed0002-0000-0000-0000-000000000001', '5eedaaaa-0000-0000-0000-000000000001', '2024-06-01');
+insert into public.mentorships (mentor_id, student_id, valid_from) values
+  ('5eed0002-0000-0000-0000-000000000001', '5eed0001-0000-0000-0000-000000000001', '2024-06-01'),
+  ('5eed0002-0000-0000-0000-000000000001', '5eed0001-0000-0000-0000-000000000002', '2023-06-01');
+insert into public.group_members (group_id, student_id, valid_from) values
+  ('5eedbbbb-0000-0000-0000-000000000001', '5eed0001-0000-0000-0000-000000000001', '2024-06-01'),
+  ('5eedbbbb-0000-0000-0000-000000000001', '5eed0001-0000-0000-0000-000000000002', '2024-06-01');
+insert into public.group_leads (group_id, faculty_id, valid_from) values
+  ('5eedbbbb-0000-0000-0000-000000000001', '5eed0002-0000-0000-0000-000000000001', '2024-06-01');
+
+insert into public.items (id, type, title, description, meeting_url, deadline, requires_confirmation, requires_proof, created_by) values
+  ('5eedc000-0000-0000-0000-000000000001', 'hackathon', 'Smart India Hackathon 2026',
+   'National round. Tell us how your team placed and attach your certificate.', null, now() + interval '30 days', true, true, '5eed0002-0000-0000-0000-000000000001'),
+  ('5eedc000-0000-0000-0000-000000000002', 'event', 'Google Cloud Study Jam',
+   'Free two-hour hands-on session on Saturday.', 'https://meet.google.com/abc-defg-hij', now() + interval '10 days', false, false, '5eed0002-0000-0000-0000-000000000001'),
+  ('5eedc000-0000-0000-0000-000000000003', 'internship', 'Zoho summer internship drive',
+   'Campus drive for second-year students.', null, now() + interval '20 days', true, false, '5eed0002-0000-0000-0000-000000000001');
+
+insert into public.invitations (id, item_id, student_id, status, responded_at) values
+  ('5eedd000-0000-0000-0000-000000000001', '5eedc000-0000-0000-0000-000000000001', '5eed0001-0000-0000-0000-000000000001', 'joined', now()),
+  ('5eedd000-0000-0000-0000-000000000002', '5eedc000-0000-0000-0000-000000000001', '5eed0001-0000-0000-0000-000000000002', 'joined', now()),
+  ('5eedd000-0000-0000-0000-000000000003', '5eedc000-0000-0000-0000-000000000002', '5eed0001-0000-0000-0000-000000000001', 'invited', null),
+  ('5eedd000-0000-0000-0000-000000000004', '5eedc000-0000-0000-0000-000000000002', '5eed0001-0000-0000-0000-000000000002', 'invited', null),
+  ('5eedd000-0000-0000-0000-000000000005', '5eedc000-0000-0000-0000-000000000003', '5eed0001-0000-0000-0000-000000000001', 'declined', now());
+
+-- Asha: a confirmed result. Karthik: a claim still waiting for review.
+insert into public.results (invitation_id, revision, outcome, details, status, confirmed_by, confirmed_at) values
+  ('5eedd000-0000-0000-0000-000000000001', 1, 'Finalist, national round', 'Team of four; built a flood-alert dashboard.', 'confirmed', '5eed0002-0000-0000-0000-000000000001', now());
+insert into public.results (invitation_id, revision, outcome, details, status) values
+  ('5eedd000-0000-0000-0000-000000000002', 1, 'Participated in the national round', 'Certificate arrives next week.', 'submitted');

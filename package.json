@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:db": "supabase test db",
     "test:e2e": "playwright test",
+    "demo:code": "node scripts/demo-code.mjs",
     "seed:local": "docker exec -i supabase_db_prime_project_tracker psql -U postgres -v ON_ERROR_STOP=1 < supabase/dev-seed.sql"
   },
   "dependencies": {

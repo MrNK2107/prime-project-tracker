@@ -48,3 +48,16 @@ _(one entry per task is added below as it completes: commits, tests run, review 
   - A link created and ended on the same day stays active that day (up to one day of extra access on a mistaken link). The admin screens (Task 8) will validate dates.
   - Admin accounts are created outside the app; the app's create-user action must refuse role `admin` or `principal`.
 - Deferred minors: `service_role` cannot call the helper functions (check when building server code); `profiles.email` not tied to the auth email; a few extra test cases (ended group-lead link, ended department with active HOD link).
+
+### Task 3 — Items, invitations and targeting — DONE (review: approved after 1 fix round)
+- Commits: `6350722` (items and invitations tables, `create_item`, `respond_to_invitation`, row-level security, 59 tests), `f478502` (read-path performance fix).
+- Built: faculty create an item and target it by group, department, year or hand-picked students. The system expands that into one invitation per student, and silently drops any student the faculty member is not allowed to see (spec Decision 4). Students join or decline in place (no duplicate rows), and not after the deadline. Writes only go through the two functions; nobody can write the tables directly. Admin sees no items or invitations; the principal sees everything but cannot create or respond.
+- Tests: 135 assertions passing overall (72 in the items file). Includes exact-set checks for the union without duplicates, join after deadline failing, and decline then join reusing the same row.
+- Review found no access-control hole. It found one Important problem, now fixed: the read rules checked every invitation in the system for each query, which would slow down badly at a few thousand students. They now use an indexed fast path plus one set-based visibility helper, `visible_student_ids()`. A new test proves it returns exactly the same students as the original rule for nine different users (student, inactive student, mentor, group lead, HOD, faculty with no links, inactive faculty, principal, admin).
+- Rulings (the implementer's calls, accepted):
+  - The principal sees every item, including ones with no invitations.
+  - Inactive students and non-students are never invited, even if named.
+  - A deadline already in the past is accepted when creating an item (the screen should warn).
+  - Error codes callers can rely on: 42501 (not allowed), 22023 (bad input), P0001 (deadline passed).
+  - Until the first real deploy (Task 12), database migration files are edited in place; after it, every change is a new migration.
+- Deferred minors: meeting links are not validated (a `javascript:` link would be a risk, so the faculty screen in Task 9 must only render `https` links); a student's status could still be flipped after a result exists (Task 4 will lock that); more test cases for ended and future-dated links.

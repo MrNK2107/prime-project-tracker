@@ -128,6 +128,13 @@ _(one entry per task is added below as it completes: commits, tests run, review 
 - App: a shared `/students` list and profile (faculty see their own students, admin and principal see all; students are redirected away), an Overview tab for the admin, student names in the dashboards link to profiles. Proof views by the admin are audit-logged like anyone else's. The end-to-end test now ends with the admin opening the student's profile and the overview.
 - Docs updated: `PRODUCT.md`, the design spec. Note for the audit trail: reading results is not logged except proof views and profile opens, as before.
 
+### Hosted deployment (test) — DONE
+- Created Supabase project `prime-project-tracker` (`qpdecbdiswisgzbrbwzp`, Mumbai) with the Supabase CLI, applied all 7 migrations (`db push --remote`), pushed auth settings (signups off, 6-digit codes, site URL) with `config push` from a minimal auth-only config so nothing else was overwritten. Created Vercel project `prime-project-tracker`, set 4 production variables (service key as a secret), deployed to https://prime-project-tracker.vercel.app.
+- Found: the free tier will not let the sign-in email template be changed without a custom email sender, so emailed codes cannot work on the hosted project yet; the demo uses admin-generated one-time links through `/auth/callback` (now checks the account is active and goes straight to the role home).
+- Seeded five demo accounts and sample data (`scripts/seed-hosted.mjs`); `npm run demo:links` prints fresh sign-in links; `npm run test:prod` runs 5 tests against the live site, all passing (includes a real proof upload to hosted storage).
+- Test runs left two extra "Prod smoke" items and one unconfirmed claim in the hosted demo data (history is never deleted by design).
+- Still needed for real use: the real college email domain, the real principal and admin, and a custom SMTP provider (see `docs/deploy.md`).
+
 ## Status: RESUMED (was paused at your request)
 On resume, the Task 4 implementer had been cut off by a network error and left unfinished, uncommitted files. I resumed the same implementer to verify and finish them rather than starting over. The notes below are the state at the time of the pause.
 - Complete and reviewed: Tasks 1, 2, 3 (last committed code: `f478502`; last log commit: `dd1fca4`).

@@ -1,6 +1,26 @@
 # Deploying Prime Project Tracker
 
-Local development and every test pass without any of this. These steps create the hosted copy. Nothing here has been run yet: it needs your Supabase and Vercel accounts and the real college email domain.
+## Current state (test deployment, 17 Nov 2026)
+
+- **Live:** https://prime-project-tracker.vercel.app (Vercel project `prime-project-tracker`, public).
+- **Database:** Supabase project `prime-project-tracker`, ref `qpdecbdiswisgzbrbwzp`, region Mumbai (`ap-south-1`), all 7 migrations applied. Its keys and database password are in the git-ignored `.env.deploy.local` and in Vercel's environment variables (the service key is stored as a Vercel secret).
+- **Auth settings pushed:** new signups off, 6-digit codes, 15-minute expiry, site URL set to the address above.
+- **Demo data:** five demo accounts (`admin@`, `principal@`, `faculty@`, `student@`, `student2@college.edu`) with sample links, items and results, created by `scripts/seed-hosted.mjs`. `ALLOWED_EMAIL_DOMAIN` is set to `college.edu` for the demo. **Before real use:** set the real domain in Vercel, create the real principal and admin (step 4 below), and delete the demo accounts.
+- **Signing in to the demo:** the free tier cannot send the code email (see "Email" below), so use one-time sign-in links: `npm run demo:links` prints a fresh link for each demo account (each works once and expires in about an hour).
+- **Tested against the live site** (`npm run test:prod`, 5 tests): signed-out redirect, signup closed, wrong-domain refusal, every role lands on its own home and is kept out of the others, faculty posts an item needing proof, the student uploads a proof file to hosted storage and submits, faculty opens the proof through a signed link and confirms, the principal's count updates, and another student cannot read the proof.
+
+## Email (the one thing that blocks real users)
+
+Supabase's built-in email sender is limited to a few emails per hour and, on the free tier, will not let us change the email template. The app signs people in by entering a code, so the template must contain the code (`supabase/templates/magic_link.html`). To go live with real users:
+
+1. Set up a custom SMTP provider (Resend, SendGrid, Amazon SES, or the college's mail server) in Supabase: Authentication, SMTP Settings.
+2. Then set the template, either in the dashboard (Authentication, Email Templates, Magic Link) or with `npx supabase config push` using the template path in `supabase/config.toml`.
+
+Until then, no emailed code will contain a usable code on the hosted project.
+
+## Steps used (for repeating on another project)
+
+Local development and every test pass without any of this.
 
 ## Decide before you start
 

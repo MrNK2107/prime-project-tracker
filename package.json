@@ -11,6 +11,8 @@
     "test:db": "supabase test db",
     "test:e2e": "playwright test",
     "demo:code": "node scripts/demo-code.mjs",
+    "demo:links": "node --env-file=.env.deploy.local scripts/seed-hosted.mjs links",
+    "test:prod": "node --env-file=.env.deploy.local node_modules/@playwright/test/cli.js test -c playwright.prod.config.ts",
     "seed:local": "docker exec -i supabase_db_prime_project_tracker psql -U postgres -v ON_ERROR_STOP=1 < supabase/dev-seed.sql"
   },
   "dependencies": {

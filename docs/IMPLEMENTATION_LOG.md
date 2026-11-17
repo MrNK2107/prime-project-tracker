@@ -62,6 +62,16 @@ _(one entry per task is added below as it completes: commits, tests run, review 
   - Until the first real deploy (Task 12), database migration files are edited in place; after it, every change is a new migration.
 - Deferred minors: meeting links are not validated (a `javascript:` link would be a risk, so the faculty screen in Task 9 must only render `https` links); a student's status could still be flipped after a result exists (Task 4 will lock that); more test cases for ended and future-dated links.
 
+### Task 4 — Results, confirmation and revisions — DONE (review: approved, no fix round needed)
+- Commit: `0f785dd`. (The implementer was cut off by a network error mid-task; I resumed the same implementer, which re-verified and finished.)
+- Built: students submit a result for an item they joined, with optional or required proof. Items that do not need confirmation store the result as confirmed straight away. Otherwise only the item's creator or the student's current mentor can confirm or send it back, checked at the moment they act. HODs, group leads, the principal, the admin and the student themself cannot. A sent-back result returns to the student, and each resubmission is a new numbered revision. A confirmed result is locked by a database trigger. A student can request a correction, which becomes a new revision that must be confirmed. The old value keeps counting until then, and is then marked superseded. History can never be deleted. A student can no longer switch from joined to declined once a result exists.
+- Tests: 211/211 passing (76 in the new results file), with exact checks on revision and status order, who confirmed, and error codes. The implementer proved the new "no un-join" test fails without its fix.
+- Review: no Critical or Important issues. The reviewer traced race conditions (two people confirming at once, two correction requests at once) and found them closed by row locking plus unique rules.
+- Rulings:
+  - A correction is approved by the same people who can confirm a first result (item creator or current mentor). The spec's wording "the confirmer or the student's mentor" was ambiguous; this is the consistent reading.
+  - Extras the implementer added, judged sound: only one confirmed row per invitation (the dashboards need this), sent-back and superseded rows are final, and a correction always goes to review even on items that do not otherwise need confirmation.
+- Deferred minors (for the final review): the server-side key (`service_role`) can still truncate or insert into results, bypassing the lock, so server code must be careful and the final review should decide whether to revoke it; the lock does not restrict edits to a still-submitted row; a faculty member demoted to student by an admin would still read results of items they created; a few extra tests.
+
 ## Status: RESUMED (was paused at your request)
 On resume, the Task 4 implementer had been cut off by a network error and left unfinished, uncommitted files. I resumed the same implementer to verify and finish them rather than starting over. The notes below are the state at the time of the pause.
 - Complete and reviewed: Tasks 1, 2, 3 (last committed code: `f478502`; last log commit: `dd1fca4`).

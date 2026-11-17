@@ -85,6 +85,12 @@ _(one entry per task is added below as it completes: commits, tests run, review 
 - **Open question for you:** the admin can read the audit log, and through it can see which students joined which kinds of item and whether their result was confirmed or sent back (never the result text). The spec says the admin sees no results. I left it as is; say if you want the admin's audit view limited to account and link changes.
 - Deferred minors: audit view for the admin (above); a few extra test cases; a hardening idea for the guard (check "not the owner" instead of "is service_role").
 
+### Task 6 — Proof storage — DONE (verified on resume; not given a separate reviewer pass)
+- Commit: `3866c54`.
+- Built: a private `proofs` bucket (PDF, JPG, PNG, 5 MB limit enforced by the Storage service). Students can upload only into their own folder (`{student_id}/{uuid}.{ext}`), and only while active. Nobody can read, update or delete objects directly. `GET /api/proof/[resultId]` checks the caller can read that result (through their own session), writes a `proof_view` audit row, then returns a 60-second signed URL. Anyone else, including the admin, gets 404. If the audit write fails, no URL is returned.
+- Tests: 341/341 database tests, 22/22 Vitest unit tests, and 5/5 live Storage API tests (wrong type, oversize, other student's folder all rejected).
+- Note: `results.proof_path` must now sit in the student's own folder (enforced in `submit_result` and `request_correction`).
+
 ## Status: RESUMED (was paused at your request)
 On resume, the Task 4 implementer had been cut off by a network error and left unfinished, uncommitted files. I resumed the same implementer to verify and finish them rather than starting over. The notes below are the state at the time of the pause.
 - Complete and reviewed: Tasks 1, 2, 3 (last committed code: `f478502`; last log commit: `dd1fca4`).

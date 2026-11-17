@@ -6,8 +6,10 @@ import { NAV, ROLE_LABEL } from "@/lib/nav";
 import type { SessionProfile } from "@/lib/session";
 import styles from "./AppShell.module.css";
 
-export function AppShell({ profile, children }: { profile: SessionProfile; children: React.ReactNode }) {
-  const items = NAV[profile.role].map((i) => ({ href: i.href, label: i.label, iconName: i.icon }));
+export function AppShell({ profile, isHod = false, children }: { profile: SessionProfile; isHod?: boolean; children: React.ReactNode }) {
+  const base = NAV[profile.role];
+  const all = isHod ? [...base, { href: "/faculty/department", label: "Department", icon: "chart" as const }] : base;
+  const items = all.map((i) => ({ href: i.href, label: i.label, iconName: i.icon }));
   const initial = (profile.fullName || ROLE_LABEL[profile.role]).trim().charAt(0).toUpperCase();
 
   return (

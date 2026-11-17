@@ -4,12 +4,15 @@ import { connection } from "next/server";
 import { AppShell } from "@/components/AppShell";
 import { ShellSkeleton } from "@/components/ShellSkeleton";
 import { getSessionProfile } from "@/lib/session";
+import { myDepartments } from "@/lib/dashboards/queries";
 
 async function AuthedShell({ children }: { children: React.ReactNode }) {
   await connection(); // the session is per-request data, never prerendered
   const profile = await getSessionProfile();
   if (!profile) redirect("/login");
-  return <AppShell profile={profile}>{children}</AppShell>;
+  // A faculty member who currently heads a department also gets the Department dashboard.
+  const isHod = profile.role === "faculty" && (await myDepartments()).length > 0;
+  return <AppShell profile={profile} isHod={isHod}>{children}</AppShell>;
 }
 
 /**

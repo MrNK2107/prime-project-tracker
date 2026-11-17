@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { BarChart3 } from "lucide-react";
-import { PageHeader, EmptyState } from "@/components/ui";
+import { connection } from "next/server";
+import { PageHeader } from "@/components/ui";
+import { DashboardView } from "@/components/DashboardView";
+import { loadDashboard } from "@/lib/dashboards/queries";
 
 export const metadata: Metadata = { title: "Overview" };
 
-export default function PrincipalOverview() {
+export default async function PrincipalOverview() {
+  await connection();
+  const data = await loadDashboard();
   return (
     <>
-      <PageHeader title="Overview" description="A read-only view of confirmed results across all students." />
-      <EmptyState icon={<BarChart3 size={22} />} title="No results to summarise yet">
-        Confirmed results will be summarised here. Unconfirmed claims are always shown separately.
-      </EmptyState>
+      <PageHeader title="Overview" description="A read-only view of confirmed results across all students. Unconfirmed claims are shown separately." />
+      <DashboardView data={data} />
     </>
   );
 }

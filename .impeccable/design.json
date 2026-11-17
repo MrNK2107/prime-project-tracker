@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-17T00:00:00Z",
+  "title": "Design System: Prime Project Tracker",
+  "extensions": {
+    "colorMeta": {
+      "brand": { "role": "primary", "displayName": "Ink Blue", "canonical": "#1f3a6b", "tonalRamp": ["#0d1a33", "#14264a", "#1f3a6b", "#3a5a96", "#6b86b9", "#9fb2d4", "#c9d4ea", "#e8edf7"] },
+      "brand-deep": { "role": "primary", "displayName": "Chancery Navy", "canonical": "#14264a", "tonalRamp": ["#0a1325", "#14264a", "#1f3a6b", "#3a5a96", "#6b86b9", "#9fb2d4", "#c9d4ea", "#e8edf7"] },
+      "seal": { "role": "secondary", "displayName": "Seal Teal", "canonical": "#16695a", "tonalRamp": ["#08241f", "#0e423a", "#16695a", "#2a8f7d", "#5db3a2", "#92cfc3", "#c3e4dd", "#e2f1ed"] },
+      "claim": { "role": "secondary", "displayName": "Claim Amber", "canonical": "#7a5600", "tonalRamp": ["#2b1e00", "#523a00", "#7a5600", "#a67a10", "#c99a2e", "#e3bf6a", "#f2dca3", "#fbf1d6"] },
+      "danger": { "role": "tertiary", "displayName": "Error Red", "canonical": "#b3261e", "tonalRamp": ["#3a0b08", "#6e1711", "#b3261e", "#d2554d", "#e58882", "#f0b4b0", "#f8d8d6", "#fceceb"] },
+      "ground": { "role": "neutral", "displayName": "Cool Ground", "canonical": "#f4f6f9", "tonalRamp": ["#13203a", "#46536b", "#5f6b82", "#8a94a7", "#c3cbd8", "#dde2ea", "#f4f6f9", "#ffffff"] }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Page titles (h1), Source Serif 4." },
+      "title": { "displayName": "Title", "purpose": "Section headings (h2), Source Sans 3." },
+      "body": { "displayName": "Body", "purpose": "All running text and data, tabular figures, 68ch cap." },
+      "label": { "displayName": "Label", "purpose": "Field labels, hints, badges." }
+    },
+    "shadows": [
+      { "name": "overlay-pop", "value": "0 8px 24px rgba(19,32,58,0.14), 0 2px 6px rgba(19,32,58,0.08)", "purpose": "Overlays only; no user yet." },
+      { "name": "input-focus-glow", "value": "0 0 0 3px rgba(47,111,224,0.28)", "purpose": "Field focus, paired with blue border." },
+      { "name": "bottom-nav-lift", "value": "0 -4px 16px rgba(19,32,58,0.06)", "purpose": "Separates mobile tab bar from content." }
+    ],
+    "motion": [
+      { "name": "ease", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "All state transitions, 160ms." },
+      { "name": "rise", "value": "420ms ease, opacity 0 and translateY(8px) to rest", "purpose": "Entrance of page headers, forms, empty states. Disabled under reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "shell-wide", "value": "48rem" },
+      { "name": "login-split", "value": "56rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action; one per view.",
+      "html": "<button class=\"ds-btn-primary\">Send code</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 1.1rem;border:1px solid transparent;border-radius:var(--radius-sm,7px);background:var(--brand,#1f3a6b);color:#fff;font-weight:600;font-size:1rem;cursor:pointer;transition:background-color 160ms cubic-bezier(0.22,1,0.36,1),transform 160ms cubic-bezier(0.22,1,0.36,1)}.ds-btn-primary:hover{background:var(--brand-hover,#182f58)}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:3px solid var(--focus,#2f6fe0);outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Supporting action on white.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 1.1rem;border:1px solid var(--line-strong,#c3cbd8);border-radius:var(--radius-sm,7px);background:var(--surface,#fff);color:var(--brand,#1f3a6b);font-weight:600;font-size:1rem;cursor:pointer;transition:background-color 160ms,border-color 160ms}.ds-btn-secondary:hover{background:var(--brand-tint,#e8edf7);border-color:var(--brand,#1f3a6b)}.ds-btn-secondary:focus-visible{outline:3px solid var(--focus,#2f6fe0);outline-offset:2px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labelled 48px field with blue focus glow.",
+      "html": "<div class=\"ds-field\"><label for=\"ds-e\">College email</label><input id=\"ds-e\" class=\"ds-input\" placeholder=\"name@college.edu\"></div>",
+      "css": ".ds-field{display:grid;gap:0.375rem}.ds-field label{font-size:0.8125rem;font-weight:650;color:var(--ink-2,#46536b)}.ds-input{width:100%;min-height:48px;padding:0 0.875rem;background:var(--surface,#fff);border:1px solid var(--line-strong,#c3cbd8);border-radius:var(--radius-sm,7px);font:inherit;transition:border-color 160ms,box-shadow 160ms}.ds-input:hover{border-color:var(--ink-3,#5f6b82)}.ds-input:focus{outline:none;border-color:var(--brand,#1f3a6b);box-shadow:0 0 0 3px rgba(47,111,224,0.28)}"
+    },
+    {
+      "name": "Seal Badge",
+      "kind": "chip",
+      "refersTo": "badge-seal",
+      "description": "Verified result marker.",
+      "html": "<span class=\"ds-badge-seal\">Verified</span>",
+      "css": ".ds-badge-seal{display:inline-flex;align-items:center;gap:0.375rem;padding:0.2rem 0.6rem;border-radius:999px;font-size:0.8125rem;font-weight:650;line-height:1.3;background:var(--seal-tint,#e2f1ed);color:var(--seal,#16695a);border:1px solid color-mix(in srgb,var(--seal,#16695a) 35%,transparent)}"
+    },
+    {
+      "name": "Claim Badge",
+      "kind": "chip",
+      "refersTo": "badge-claim",
+      "description": "Unconfirmed claim marker, dashed.",
+      "html": "<span class=\"ds-badge-claim\">Claimed</span>",
+      "css": ".ds-badge-claim{display:inline-flex;align-items:center;gap:0.375rem;padding:0.2rem 0.6rem;border-radius:999px;font-size:0.8125rem;font-weight:650;line-height:1.3;background:var(--claim-tint,#fbf1d6);color:var(--claim,#7a5600);border:1px dashed var(--claim-line,#c99a2e)}"
+    },
+    {
+      "name": "Record Card",
+      "kind": "card",
+      "refersTo": "record-card",
+      "description": "Solid when sealed, dashed when claimed.",
+      "html": "<div class=\"ds-record\" data-state=\"claimed\">Smart India Hackathon, claimed</div>",
+      "css": ".ds-record{background:var(--surface,#fff);border:1px solid var(--line,#dde2ea);border-radius:var(--radius,10px);padding:1rem 1.125rem;color:var(--ink,#13203a)}.ds-record[data-state=claimed]{border:1px dashed var(--claim-line,#c99a2e);background:color-mix(in srgb,var(--claim-tint,#fbf1d6) 35%,var(--surface,#fff))}.ds-record[data-state=sealed]{border-color:color-mix(in srgb,var(--seal,#16695a) 40%,var(--line,#dde2ea))}"
+    },
+    {
+      "name": "Top Navigation",
+      "kind": "nav",
+      "refersTo": "shell-bar",
+      "description": "Navy bar tab with active underline.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link\" href=\"#\">Home</a><a class=\"ds-nav-link\" href=\"#\" aria-current=\"page\">Results</a></nav>",
+      "css": ".ds-nav{display:flex;gap:0.25rem;padding:0.65rem 1rem;background:var(--brand-deep,#14264a);border-bottom:3px double rgba(255,255,255,0.28)}.ds-nav-link{display:inline-flex;align-items:center;min-height:44px;padding:0 0.9rem;border-radius:var(--radius-sm,7px);color:#d5deef;text-decoration:none;font-weight:600}.ds-nav-link:hover{background:rgba(255,255,255,0.1);color:#fff}.ds-nav-link[aria-current=page]{background:rgba(255,255,255,0.16);color:#fff;box-shadow:inset 0 -2px 0 #fff}.ds-nav-link:focus-visible{outline:3px solid #fff;outline-offset:2px}"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "record-card",
+      "description": "Dashed neutral panel; an empty list is normal.",
+      "html": "<section class=\"ds-empty\"><h2>No results yet</h2><p>Add your first hackathon or internship.</p></section>",
+      "css": ".ds-empty{display:grid;justify-items:center;gap:0.75rem;padding:3rem 1.5rem;text-align:center;background:var(--surface,#fff);border:1px dashed var(--line-strong,#c3cbd8);border-radius:var(--radius,10px);color:var(--ink-2,#46536b)}.ds-empty h2{color:var(--ink,#13203a);font-size:1.1875rem;font-weight:650}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Hall Ticket and Seal",
+    "overview": "A college records office rendered as software: calm, ruled, official. The system owns one idea, the difference between what is verified and what is only claimed. Verified work carries a solid outline and a deep teal seal; claimed work carries a dashed amber outline. Everything else stays quiet so that single distinction can be read at a glance on a phone or a desktop.\n\nThe surface is a cool off-white ground with white sheets, hairline rules, and a deep ink-blue shell. Depth comes from rules, borders, and tint, not shadow. Ticket-style dotted perforation dividers and a double-ruled edge under the ink-blue bar are the world's native ornament. The serif voice is reserved for page titles and the college and product names; the humanist sans carries all data, with tabular figures.\n\nColours are all tokens defined once in :root so the Saveetha Engineering College brand colours and logo can be swapped in later. Neither has been supplied; the blue and the seal mark here are placeholders of the system, not the college identity.",
+    "keyCharacteristics": [
+      "Verified is solid plus teal; claimed is dashed plus amber; errors are red and nothing else is red.",
+      "Ink-blue shell and primary actions on a cool off-white ground.",
+      "Flat surfaces; one soft shadow tier exists for overlays only.",
+      "44px minimum touch targets, 48px fields, visible 3px focus ring.",
+      "Empty lists are a normal state, not an error."
+    ],
+    "rules": [
+      { "name": "The Seal Is Earned Rule", "body": "Teal means verified and only verified. Amber means claimed and only claimed. Neither is used decoratively.", "section": "colors" },
+      { "name": "The Red Is Error Rule", "body": "Red appears only on errors and invalid fields.", "section": "colors" },
+      { "name": "The Token Rule", "body": "Every colour comes from a :root token so the college brand can replace them in one place.", "section": "colors" },
+      { "name": "The Serif Is Rare Rule", "body": "Source Serif 4 appears only on page titles, the sign-in heading, and the college and product names. Data, controls, and navigation are sans.", "section": "typography" },
+      { "name": "The Rules Not Shadows Rule", "body": "Surfaces separate with borders and tint. A shadow appears only on overlays and as the focus glow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do show verified work with a solid outline and Seal Teal, and claimed work with a dashed Claim Line outline and Claim Amber.",
+      "Do take every colour from a :root token so the college brand can be swapped in one place.",
+      "Do keep touch targets at 44px or more and fields at 48px.",
+      "Do use Source Serif 4 only for page titles, the sign-in heading, and the college and product names.",
+      "Do write empty states that say what belongs here and the next step.",
+      "Do separate surfaces with hairline borders and tint; use a perforation divider for ticket-style breaks."
+    ],
+    "donts": [
+      "Don't use teal, amber, or red for anything but verified, claimed, and error respectively.",
+      "Don't build a generic SaaS card grid with icon tiles.",
+      "Don't add shadows to resting cards; shadows are for overlays and focus.",
+      "Don't invent the Saveetha logo or brand colours; use text and the placeholder seal until supplied.",
+      "Don't rely on colour alone for verified versus claimed; the border style and label carry it too."
+    ]
+  }
+}

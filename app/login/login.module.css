@@ -1,0 +1,151 @@
+.page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.brandPanel {
+  background: var(--brand-deep);
+  color: #fff;
+  padding: 1.5rem 1.25rem 1.75rem;
+  border-bottom: 3px double color-mix(in srgb, #fff 28%, transparent);
+}
+
+.brandInner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brandInner svg {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.brandCopy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.college {
+  font-size: 0.8125rem;
+  color: #c9d4ea;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.product {
+  font-size: 1.375rem;
+  color: #fff;
+}
+
+.tagline,
+.legal {
+  display: none;
+}
+
+.formPanel {
+  flex: 1;
+  display: grid;
+  place-items: start center;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.card {
+  width: 100%;
+  max-width: 26rem;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.head {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: var(--step-2);
+  font-weight: 600;
+}
+
+.sub {
+  color: var(--ink-2);
+}
+
+.sub strong {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.code {
+  font-size: 1.75rem;
+  letter-spacing: 0.35em;
+  text-align: center;
+  min-height: 60px;
+  font-weight: 600;
+}
+
+.code::placeholder {
+  letter-spacing: 0.35em;
+  font-weight: 400;
+}
+
+@media (min-width: 56rem) {
+  .page {
+    flex-direction: row;
+  }
+
+  .brandPanel {
+    flex: 0 0 42%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 3.5rem 3.5rem 2.5rem;
+    border-bottom: 0;
+    border-right: 3px double color-mix(in srgb, #fff 28%, transparent);
+  }
+
+  .brandInner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-top: 12vh;
+  }
+
+  .brandInner svg {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+
+  .college {
+    font-size: 0.9375rem;
+  }
+
+  .product {
+    font-size: 2.5rem;
+    max-width: 14ch;
+  }
+
+  .tagline {
+    display: block;
+    margin-top: 1rem;
+    color: #d5deef;
+    font-size: 1.0625rem;
+    max-width: 34ch;
+  }
+
+  .legal {
+    display: block;
+    color: #b6c3de;
+    font-size: 0.8125rem;
+    max-width: 40ch;
+  }
+
+  .formPanel {
+    place-items: center;
+    padding: 3rem;
+    background: var(--surface);
+  }
+}

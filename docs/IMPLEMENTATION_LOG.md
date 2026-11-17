@@ -97,6 +97,13 @@ _(one entry per task is added below as it completes: commits, tests run, review 
 - Tests: 36 Vitest tests passing (session gate with mocked client, redirect rules, domain check including lookalike domains such as `evil-college.edu` and `college.edu.evil.com`), 341 database tests passing, types and lint clean. Not yet tested against a running browser; the Task 12 smoke test will cover that.
 - Deferred: the role homes (`/student` etc.) do not exist yet (Tasks 8 to 11), so a signed-in user currently lands on a 404. Set `ALLOWED_EMAIL_DOMAIN` in `.env.local` to try the login locally.
 
+### Design system and app shell — DONE (self-verified, finish reviewer not run)
+- Direction (user-chosen, "Hall ticket & seal"): cool off-white ground, ink-blue shell and primary actions, teal-green seal for confirmed results, dashed amber for unconfirmed claims, red only for errors. Source Sans 3 body, Source Serif 4 titles. Colours are CSS tokens in `app/globals.css`, so the Saveetha Engineering College logo and colours can be swapped in once supplied (not yet received; the college name is shown as text only).
+- Built: `PRODUCT.md`, design tokens and shared classes (buttons, fields, badges, record cards, empty states), a sign-in page (split layout on desktop, stacked on phone, code step with error and a way back), an app shell (top bar with tabs on desktop, bottom tab bar on phones, sign-out, skip link, loading skeleton), and placeholder home pages for the four roles so signed-in users no longer hit a 404.
+- Bugs found by looking at the real render: (1) the default Supabase sign-in email had no code, only a link, so the code screen could never work; added `supabase/templates/magic_link.html` and set it in `supabase/config.toml` (hosted Supabase needs the same template pasted in at deploy time). (2) Next 16 Cache Components flagged reading the session during prerender; the shell now reads it behind Suspense with `connection()`.
+- Checked: desktop and 390px phone screenshots of sign-in and shell, full sign-in with a real emailed code, types, lint, 36 unit tests, production build, design detector (no findings).
+- Carry forward: Tasks 8 to 11 must use these tokens and classes. Pages add nav entries in `lib/nav.ts`.
+
 ## Status: RESUMED (was paused at your request)
 On resume, the Task 4 implementer had been cut off by a network error and left unfinished, uncommitted files. I resumed the same implementer to verify and finish them rather than starting over. The notes below are the state at the time of the pause.
 - Complete and reviewed: Tasks 1, 2, 3 (last committed code: `f478502`; last log commit: `dd1fca4`).

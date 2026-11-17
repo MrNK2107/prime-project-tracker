@@ -4,7 +4,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(59);
+select plan(72);
 
 -- ---------------------------------------------------------------- helpers
 create schema tests;
@@ -345,6 +345,57 @@ reset role;
 select tests.as_user('33333333-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.items), 0, 'admin sees 0 items');
 select is((select count(*)::int from public.invitations), 0, 'admin sees 0 invitations');
+reset role;
+
+-- ---------------------------------------------------------------- visible_student_ids() == can_see_student
+-- The set-returning helper used by the policies must agree exactly with can_see_student
+-- (the single source of truth) for every kind of caller.
+create table tests.people as select id from public.profiles;
+grant select on tests.people to authenticated;
+
+select ok(
+  not has_function_privilege('anon', 'public.visible_student_ids()', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.created_item_ids()', 'EXECUTE')
+  and has_function_privilege('authenticated', 'public.visible_student_ids()', 'EXECUTE')
+  and has_function_privilege('authenticated', 'public.created_item_ids()', 'EXECUTE'),
+  'visible_student_ids / created_item_ids: executable by authenticated only, not anon');
+
+create function tests.check_visible(uid uuid, label text) returns text
+language plpgsql as $$
+begin
+  perform tests.as_user(uid);
+  return is(
+    array(select v from public.visible_student_ids() v order by v),
+    array(select id from tests.people where public.can_see_student(auth.uid(), id) order by id),
+    'visible_student_ids() equals can_see_student filter for ' || label);
+end $$;
+grant execute on function tests.check_visible(uuid, text) to authenticated;
+
+select tests.check_visible('11111111-0000-0000-0000-000000000001', 'student S1'); reset role;
+select tests.check_visible('11111111-0000-0000-0000-000000000005', 'inactive student S5'); reset role;
+select tests.check_visible('22222222-0000-0000-0000-000000000001', 'mentor M1'); reset role;
+select tests.check_visible('22222222-0000-0000-0000-000000000002', 'group lead + mentor M2'); reset role;
+select tests.check_visible('22222222-0000-0000-0000-000000000003', 'HOD H1'); reset role;
+select tests.check_visible('22222222-0000-0000-0000-000000000005', 'faculty F0 without links'); reset role;
+select tests.check_visible('22222222-0000-0000-0000-000000000006', 'inactive faculty X'); reset role;
+select tests.check_visible('44444444-0000-0000-0000-000000000001', 'principal'); reset role;
+select tests.check_visible('33333333-0000-0000-0000-000000000001', 'admin'); reset role;
+
+-- non-trivial: the sets compared above are the expected ones
+select tests.as_user('22222222-0000-0000-0000-000000000002');
+select is(array(select v from public.visible_student_ids() v order by v),
+  array['11111111-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000002',
+        '11111111-0000-0000-0000-000000000003', '22222222-0000-0000-0000-000000000002']::uuid[],
+  'M2 visible set: group S1, S2, mentee S3, plus self');
+reset role;
+select tests.as_user('44444444-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.visible_student_ids() v
+           where v in (select id from public.profiles where role = 'student')), 5,
+  'principal visible set covers all 5 students');
+reset role;
+select tests.as_user('22222222-0000-0000-0000-000000000006');
+select is((select count(*)::int from public.visible_student_ids()), 0,
+  'inactive faculty X visible set is empty despite an active mentorship');
 reset role;
 
 -- ---------------------------------------------------------------- respond_to_invitation

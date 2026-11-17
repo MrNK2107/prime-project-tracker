@@ -44,38 +44,68 @@ create index items_created_by_idx on public.items (created_by);
 create index invitations_student_idx on public.invitations (student_id);
 
 -- ------------------------------------------------------------------ visibility helpers
--- Security definer so the items policy can look at invitations (and vice versa) without
--- recursing through each other's RLS. Both use auth.uid() only.
+-- Set-returning security definer helpers, used as `x in (select helper())` so the planner
+-- can semi-join (and hash) once per query instead of calling a function per row. They also
+-- let the invitations policy reach items without recursing through items RLS.
+-- Both answer only about auth.uid().
 
--- Did the caller (active) create this item?
-create function public.is_item_creator(p_item_id uuid)
-returns boolean
+-- Every profile id the caller can see as a student. Must equal
+--   { s : public.can_see_student(auth.uid(), s) }
+-- (can_see_student stays the single source of truth; 20_items.sql asserts the equality
+-- for every fixture role). Empty for an inactive or anonymous caller.
+create function public.visible_student_ids()
+returns setof uuid
 language sql stable security definer
 set search_path = ''
 as $$
-  select (select public.is_active_user())
-     and exists (select 1 from public.items i
-                 where i.id = p_item_id and i.created_by = (select auth.uid()));
+  with me as (
+    select p.id, p.role from public.profiles p
+    where p.id = (select auth.uid()) and p.active
+  )
+  select me.id from me
+  union
+  select s.id from public.profiles s, me
+  where me.role = 'principal' and s.role = 'student'
+  union
+  select m.student_id from public.mentorships m, me
+  where me.role = 'faculty' and m.mentor_id = me.id
+    and m.valid_from <= current_date
+    and (m.valid_to is null or m.valid_to >= current_date)
+  union
+  select gm.student_id from public.group_leads gl
+  join public.group_members gm on gm.group_id = gl.group_id
+  join me on me.id = gl.faculty_id
+  where me.role = 'faculty'
+    and gl.valid_from <= current_date
+    and (gl.valid_to is null or gl.valid_to >= current_date)
+    and gm.valid_from <= current_date
+    and (gm.valid_to is null or gm.valid_to >= current_date)
+  union
+  select dm.student_id from public.hod_assignments h
+  join public.department_memberships dm on dm.department_id = h.department_id
+  join me on me.id = h.faculty_id
+  where me.role = 'faculty'
+    and h.valid_from <= current_date
+    and (h.valid_to is null or h.valid_to >= current_date)
+    and dm.valid_from <= current_date
+    and (dm.valid_to is null or dm.valid_to >= current_date);
 $$;
 
--- Can the caller see this item? Creator, principal, invited student, or anyone who can
--- see an invited student (can_see_student requires an active viewer).
-create function public.can_see_item(p_item_id uuid)
-returns boolean
+-- Ids of items the (active) caller created.
+create function public.created_item_ids()
+returns setof uuid
 language sql stable security definer
 set search_path = ''
 as $$
-  select public.is_item_creator(p_item_id)
-      or (select public.current_role_of()) = 'principal'
-      or exists (select 1 from public.invitations inv
-                 where inv.item_id = p_item_id
-                   and public.can_see_student((select auth.uid()), inv.student_id));
+  select i.id from public.items i
+  where i.created_by = (select auth.uid())
+    and (select public.is_active_user());
 $$;
 
-revoke execute on function public.is_item_creator(uuid) from public, anon, service_role;
-revoke execute on function public.can_see_item(uuid) from public, anon, service_role;
-grant execute on function public.is_item_creator(uuid) to authenticated;
-grant execute on function public.can_see_item(uuid) to authenticated;
+revoke execute on function public.visible_student_ids() from public, anon, service_role;
+revoke execute on function public.created_item_ids() from public, anon, service_role;
+grant execute on function public.visible_student_ids() to authenticated;
+grant execute on function public.created_item_ids() to authenticated;
 
 -- ------------------------------------------------------------------ create_item
 -- Faculty only (active). Inserts the item, expands targets to the union of
@@ -210,16 +240,26 @@ revoke all on public.items, public.invitations from anon;
 -- writes only through the security definer functions above
 revoke insert, update, delete, truncate on public.items, public.invitations from authenticated;
 
+-- Indexable fast paths first (own rows via items_created_by_idx / invitations_student_idx),
+-- then semi-joins against the set-returning helpers. invitations(item_id) lookups use the
+-- unique (item_id, student_id) index.
 create policy items_select on public.items
   for select to authenticated
-  using (public.can_see_item(id));
+  using (
+    ((select public.is_active_user()) and created_by = (select auth.uid()))
+    or id in (select inv.item_id from public.invitations inv
+              where inv.student_id = (select auth.uid()))
+    or (select public.current_role_of()) = 'principal'
+    or id in (select inv.item_id from public.invitations inv
+              where inv.student_id in (select public.visible_student_ids()))
+  );
 
 create policy invitations_select on public.invitations
   for select to authenticated
   using (
     ((select public.is_active_user()) and student_id = (select auth.uid()))
-    or public.can_see_student((select auth.uid()), student_id)
-    or public.is_item_creator(item_id)
+    or student_id in (select public.visible_student_ids())
+    or item_id in (select public.created_item_ids())
   );
 
 -- No insert/update/delete policies: admin and principal included, nobody writes directly.

@@ -72,6 +72,19 @@ _(one entry per task is added below as it completes: commits, tests run, review 
   - Extras the implementer added, judged sound: only one confirmed row per invitation (the dashboards need this), sent-back and superseded rows are final, and a correction always goes to review even on items that do not otherwise need confirmation.
 - Deferred minors (for the final review): the server-side key (`service_role`) can still truncate or insert into results, bypassing the lock, so server code must be careful and the final review should decide whether to revoke it; the lock does not restrict edits to a still-submitted row; a faculty member demoted to student by an admin would still read results of items they created; a few extra tests.
 
+### Task 5 — Audit log — DONE (review: approved after 1 fix round)
+- Commits: `2df2b1b` (audit table, triggers, `logEvent` helper), `cec4ca3` (fix after review).
+- Built: an append-only `audit_log`. Every insert and update on the 12 tracked tables (results, items, invitations, profiles and all relationship tables) is recorded automatically with who did it (null for system changes). Updates that change nothing are skipped. The log can be read only by active principal and admin accounts. Nobody can update, delete or truncate it: not signed-in users, not the server-side key, not even the database owner through normal statements. If an audit write fails, the change that triggered it fails too (deliberate: changes must always be logged). `lib/audit.ts` provides `logEvent(...)` for the app-level events (proof views, profile opens). It works out the actor from the session itself and never accepts a caller-supplied actor.
+- Privacy: no result text, item title or description, email or full name ever enters the log; it holds ids, changed column names, and old and new values only for non-sensitive columns (status, role, active, dates, requires flags). A test plants distinctive secret strings in results, items and profiles, runs real flows, and searches every column of the log for them.
+- Tests: 287/287 database tests and 9/9 Vitest tests passing.
+- Review found one Important problem, fixed in round 1 and re-verified: the server-side key could write rows with its own timestamp and id, and could forge rows that look like system-written ones. It is now limited to five columns and to three app actions (`proof_view`, `proof_download`, `profile_open`).
+- Rulings and notes:
+  - The guard on the server-side key runs as the caller (not the owner), because an owner-run guard can never see which role is calling.
+  - The database owner can still disable the guard with admin commands. That is outside anything the app can reach, and accepted.
+  - The server-side key can still choose the actor on those three events, so app code must only pass values it worked out on the server.
+- **Open question for you:** the admin can read the audit log, and through it can see which students joined which kinds of item and whether their result was confirmed or sent back (never the result text). The spec says the admin sees no results. I left it as is; say if you want the admin's audit view limited to account and link changes.
+- Deferred minors: audit view for the admin (above); a few extra test cases; a hardening idea for the guard (check "not the owner" instead of "is service_role").
+
 ## Status: RESUMED (was paused at your request)
 On resume, the Task 4 implementer had been cut off by a network error and left unfinished, uncommitted files. I resumed the same implementer to verify and finish them rather than starting over. The notes below are the state at the time of the pause.
 - Complete and reviewed: Tasks 1, 2, 3 (last committed code: `f478502`; last log commit: `dd1fca4`).

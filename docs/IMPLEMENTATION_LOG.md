@@ -61,3 +61,11 @@ _(one entry per task is added below as it completes: commits, tests run, review 
   - Error codes callers can rely on: 42501 (not allowed), 22023 (bad input), P0001 (deadline passed).
   - Until the first real deploy (Task 12), database migration files are edited in place; after it, every change is a new migration.
 - Deferred minors: meeting links are not validated (a `javascript:` link would be a risk, so the faculty screen in Task 9 must only render `https` links); a student's status could still be flipped after a result exists (Task 4 will lock that); more test cases for ended and future-dated links.
+
+## Status: PAUSED (at your request)
+- Complete and reviewed: Tasks 1, 2, 3 (last committed code: `f478502`; last log commit: `dd1fca4`).
+- In flight: Task 4 (results, confirmation, corrections). Its implementer was dispatched before the pause and may finish on its own. Nothing from it has been reviewed or logged yet, so treat Task 4 as unverified until it goes through review.
+- Next on resume: review Task 4, then Tasks 5 to 12 in order.
+- Will stop and ask you before: Task 12 step 4 (creating the hosted Supabase project and deploying to Vercel).
+- Carried-forward rules for later tasks: signup must be turned off and the college email domain enforced (Task 7); the admin create-user action must refuse the roles `admin` and `principal` (Task 8); the faculty screen must only render `https` meeting links (Task 9).
+- Machine state: Docker Desktop is running and the local database stack is up. Nothing is deployed anywhere.

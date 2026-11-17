@@ -91,6 +91,12 @@ _(one entry per task is added below as it completes: commits, tests run, review 
 - Tests: 341/341 database tests, 22/22 Vitest unit tests, and 5/5 live Storage API tests (wrong type, oversize, other student's folder all rejected).
 - Note: `results.proof_path` must now sit in the student's own folder (enforced in `submit_result` and `request_correction`).
 
+### Task 7 — Invite-only login and session gate — DONE (self-verified; not given a separate reviewer pass)
+- Built: email one-time-code login (`app/login`). An address outside `ALLOWED_EMAIL_DOMAIN` is rejected before any code is sent. Hosted signup is off (`enable_signup = false`, checked against the local API: signup and OTP-create both return 422). The login screen gives the same answer whether or not an account exists. `getSessionProfile()` returns null for no session, no `profiles` row, an inactive account, or a query error. `proxy.ts` sends signed-out users to `/login` and each role to its own home (`/student`, `/faculty`, `/admin`, `/overview`), and keeps users out of other roles' sections. `/api` routes are skipped by the proxy because they return 401/404 themselves.
+- Next.js 16 renamed `middleware.ts` to `proxy.ts`; I followed the bundled docs, so the plan's file name differs.
+- Tests: 36 Vitest tests passing (session gate with mocked client, redirect rules, domain check including lookalike domains such as `evil-college.edu` and `college.edu.evil.com`), 341 database tests passing, types and lint clean. Not yet tested against a running browser; the Task 12 smoke test will cover that.
+- Deferred: the role homes (`/student` etc.) do not exist yet (Tasks 8 to 11), so a signed-in user currently lands on a 404. Set `ALLOWED_EMAIL_DOMAIN` in `.env.local` to try the login locally.
+
 ## Status: RESUMED (was paused at your request)
 On resume, the Task 4 implementer had been cut off by a network error and left unfinished, uncommitted files. I resumed the same implementer to verify and finish them rather than starting over. The notes below are the state at the time of the pause.
 - Complete and reviewed: Tasks 1, 2, 3 (last committed code: `f478502`; last log commit: `dd1fca4`).

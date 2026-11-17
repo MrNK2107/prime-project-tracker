@@ -131,4 +131,13 @@ test("admin sets up, mentor posts, student submits, mentor confirms, department 
   await expect(page.getByRole("heading", { name: deptName })).toBeVisible();
   await expect(page.getByText(/1 confirmed across 1 student/)).toBeVisible();
   await expect(page.getByText("No unconfirmed claims.")).toBeVisible();
+
+  // ---- admin reads everything: the student's confirmed result and the school-wide overview
+  await signIn(page, "admin@college.edu", /\/admin$/);
+  await page.goto("/students");
+  await page.getByRole("link", { name: "Student " + stamp }).click();
+  await expect(page.getByText("Won first prize")).toBeVisible();
+  await expect(page.getByText("Confirmed", { exact: true })).toBeVisible();
+  await page.goto("/overview");
+  await expect(page.getByText(/confirmed across/)).toBeVisible();
 });

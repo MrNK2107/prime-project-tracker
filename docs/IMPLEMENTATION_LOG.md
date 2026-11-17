@@ -122,6 +122,12 @@ _(one entry per task is added below as it completes: commits, tests run, review 
 - Reminders: run `npx supabase db reset` before `npm run test:db` if you loaded the sample data with `npm run seed:local`; the end-to-end test needs `npm run seed:local` first (it signs in as `admin@college.edu`).
 - Open items for you (from earlier tasks): should the server-side key keep the ability to write or truncate `results`; should the admin's audit view be limited to account and link changes.
 
+### Change request — admin can read everything — DONE
+- User decision after the first build: "admin should have access to everything". This reverses the earlier least-privilege rule (admin sees no results or proofs). Interpreted as: the admin reads every student, item, invitation, result, proof file, dashboard and the audit log, as well as managing accounts and links. The admin still cannot confirm results, post items, submit results or write results/items directly (nobody can forge records; confirming stays with the item creator or the student's current mentor).
+- Database (edited in place, pre-deploy): `can_see_student` and `visible_student_ids()` treat admin like the principal; `items_select` includes admin. Results, invitations, proofs (through the audited route) and the dashboard views follow from those. Seven test expectations that encoded the old rule were changed to the new numbers; 403/403 database tests pass.
+- App: a shared `/students` list and profile (faculty see their own students, admin and principal see all; students are redirected away), an Overview tab for the admin, student names in the dashboards link to profiles. Proof views by the admin are audit-logged like anyone else's. The end-to-end test now ends with the admin opening the student's profile and the overview.
+- Docs updated: `PRODUCT.md`, the design spec. Note for the audit trail: reading results is not logged except proof views and profile opens, as before.
+
 ## Status: RESUMED (was paused at your request)
 On resume, the Task 4 implementer had been cut off by a network error and left unfinished, uncommitted files. I resumed the same implementer to verify and finish them rather than starting over. The notes below are the state at the time of the pause.
 - Complete and reviewed: Tasks 1, 2, 3 (last committed code: `f478502`; last log commit: `dd1fca4`).

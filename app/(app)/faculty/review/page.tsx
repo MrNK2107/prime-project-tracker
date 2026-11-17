@@ -31,7 +31,7 @@ export default async function ReviewPage() {
                 <div>
                   <h2 id={`r-${r.resultId}`} style={{ fontSize: "var(--step-1)" }}>{r.itemTitle}</h2>
                   <p className="secondary" style={{ color: "var(--ink-2)" }}>
-                    <Link href={`/faculty/students/${r.studentId}`}>{r.studentName}</Link> · {TYPE_LABEL[r.itemType] ?? r.itemType} · submitted {formatWhen(r.submittedAt)}
+                    <Link href={`/students/${r.studentId}`}>{r.studentName}</Link> · {TYPE_LABEL[r.itemType] ?? r.itemType} · submitted {formatWhen(r.submittedAt)}
                   </p>
                 </div>
                 <span className="badge badge-claim">{r.isCorrection ? "Correction" : "Awaiting confirmation"}</span>

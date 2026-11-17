@@ -28,7 +28,7 @@ export default async function DepartmentPage() {
       {sections.map(({ d, data }) => (
         <div key={d.id} style={{ marginBottom: "2.5rem" }}>
           <PageHeader title={d.name} description="Confirmed results for your department. Unconfirmed claims are shown separately." />
-          <DashboardView data={data} studentLink={(id) => `/faculty/students/${id}`} />
+          <DashboardView data={data} studentLink={(id) => `/students/${id}`} />
         </div>
       ))}
     </>

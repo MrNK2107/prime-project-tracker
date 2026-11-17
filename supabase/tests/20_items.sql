@@ -343,8 +343,8 @@ select throws_ok(
 reset role;
 
 select tests.as_user('33333333-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.items), 0, 'admin sees 0 items');
-select is((select count(*)::int from public.invitations), 0, 'admin sees 0 invitations');
+select is((select count(*)::int from public.items), 6, 'admin sees all 6 items');
+select is((select count(*)::int from public.invitations), 9, 'admin sees all 9 invitations');
 reset role;
 
 -- ---------------------------------------------------------------- visible_student_ids() == can_see_student

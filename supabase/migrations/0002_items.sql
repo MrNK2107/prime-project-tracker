@@ -65,7 +65,7 @@ as $$
   select me.id from me
   union
   select s.id from public.profiles s, me
-  where me.role = 'principal' and s.role = 'student'
+  where me.role in ('principal', 'admin') and s.role = 'student'
   union
   select m.student_id from public.mentorships m, me
   where me.role = 'faculty' and m.mentor_id = me.id
@@ -257,7 +257,7 @@ create policy items_select on public.items
     ((select public.is_active_user()) and created_by = (select auth.uid()))
     or id in (select inv.item_id from public.invitations inv
               where inv.student_id = (select auth.uid()))
-    or (select public.current_role_of()) = 'principal'
+    or (select public.current_role_of()) in ('principal', 'admin')
     or id in (select inv.item_id from public.invitations inv
               where inv.student_id in (select public.visible_student_ids()))
   );

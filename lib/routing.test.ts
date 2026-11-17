@@ -28,7 +28,16 @@ describe("resolveRedirect", () => {
     expect(resolveRedirect("/student/inbox", { role: "student" })).toBeNull();
     expect(resolveRedirect("/faculty", { role: "student" })).toBe("/student");
     expect(resolveRedirect("/admin", { role: "faculty" })).toBe("/faculty");
-    expect(resolveRedirect("/overview", { role: "admin" })).toBe("/admin");
+    expect(resolveRedirect("/overview", { role: "faculty" })).toBe("/faculty");
+  });
+  it("lets the admin and principal read everything, and faculty their students, on shared pages", () => {
+    expect(resolveRedirect("/overview", { role: "admin" })).toBeNull();
+    expect(resolveRedirect("/students", { role: "admin" })).toBeNull();
+    expect(resolveRedirect("/students/abc", { role: "principal" })).toBeNull();
+    expect(resolveRedirect("/students", { role: "faculty" })).toBeNull();
+    expect(resolveRedirect("/students", { role: "student" })).toBe("/student");
+    expect(resolveRedirect("/studentship", { role: "admin" })).toBe("/admin");
+    expect(resolveRedirect("/faculty", { role: "admin" })).toBe("/admin");
   });
   it("does not match sections by bare prefix", () => {
     expect(resolveRedirect("/studentship", { role: "faculty" })).toBe("/faculty");

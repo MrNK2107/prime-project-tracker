@@ -114,7 +114,7 @@ as $$
   where p.id = (select auth.uid()) and p.active;
 $$;
 
--- Can `viewer` see `student`? True when viewer = student, viewer is the principal,
+-- Can `viewer` see `student`? True when viewer = student, viewer is the principal or an admin (both read everything),
 -- or viewer is faculty with an active mentorship, an active group lead of a group the
 -- student is an active member of, or an active HOD of the student's active department.
 -- The viewer must be active. An authenticated caller may only ask about itself as viewer
@@ -133,7 +133,7 @@ as $$
         and v.active
         and (
           v.id = student
-          or (v.role = 'principal'
+          or (v.role in ('principal', 'admin')
               and exists (select 1 from public.profiles s
                           where s.id = student and s.role = 'student'))
           or (v.role = 'faculty' and (

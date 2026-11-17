@@ -40,7 +40,7 @@ Principal        → all students, read-only overview
     Group lead   → everyone in their group (e.g. Prime Project)
                    + their own mentees
 Student          → only their own items and results
-Admin            → manages accounts and links only; sees no results or proofs
+Admin            → manages accounts and links, and reads everything (user decision: all students, items, results, proofs, audit log); read-only on results
 ```
 
 Faculty roles combine: one person can be a mentor, a group lead and an HOD at once.
@@ -80,7 +80,7 @@ The user chose A.
 
 ## Builder's calls (made by me, not discussed in depth; please check these)
 
-- **Admin sees no results or proofs.** The admin manages accounts and links only (least privilege). Every admin action is in the audit log. *(My call; the user said "creative freedom" on this.)*
+- **Admin reads everything (changed by the user after the first build; originally "admin sees no results or proofs").** The admin manages accounts and links only (least privilege). Every admin action is in the audit log. *(My call; the user said "creative freedom" on this.)*
 - **Corrections:** a student requests a correction; the confirmer or the student's mentor approves it. The old confirmed value keeps counting in dashboards until the revision is confirmed.
 - **Visibility** is scoped by the viewer's current relationship to the student. The item creator also sees participants and results of their own item.
 - **Relationships are checked at the moment of action.** A reassigned mentor loses access and can confirm nothing new; history stays in the audit log. A student removed from a group keeps their existing invitations and results.

@@ -460,7 +460,7 @@ reset role;
 
 -- ---------------------------------------------------------------- read visibility
 select tests.as_user('33333333-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.results), 0, 'admin reads 0 results');
+select is((select count(*)::int from public.results), 8, 'admin reads all 8 results');
 reset role;
 select tests.as_user('44444444-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.results), 8, 'principal reads all 8 results');

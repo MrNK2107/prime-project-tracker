@@ -78,8 +78,8 @@ select is((select count(*)::int from public.unconfirmed_claims_by_student), 0, '
 
 -- ---------------------------------------------------------------- admin, unrelated faculty, anonymous
 select tests.as_user('33333333-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.confirmed_results_by_student), 0, 'admin sees no results');
-select is((select count(*)::int from public.unconfirmed_claims_by_student), 0, 'admin sees no claims');
+select is((select count(*)::int from public.confirmed_results_by_student), 2, 'admin sees confirmed rows for both departments');
+select is((select count(*)::int from public.unconfirmed_claims_by_student), 1, 'admin sees the one claim');
 
 reset role;
 select set_config('request.jwt.claims', '', true);

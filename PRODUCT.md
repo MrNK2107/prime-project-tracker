@@ -11,7 +11,7 @@ web
 Saveetha Engineering College. Four roles, all using the app on both desktop and mobile with equal importance (user-confirmed):
 - Students: see items targeted at them, join or decline, submit results with optional proof, request corrections.
 - Faculty: create and target items; review and confirm results. One person can be mentor, group lead and HOD at once.
-- Admin: manages accounts, relationship links and year promotion only. Sees no results or proofs.
+- Admin: manages accounts, relationship links and year promotion, and (user decision, Nov 2026) can read everything: all students, items, results, proof files, dashboards and the audit log. The admin reads but does not confirm results or post items.
 - Principal: read-only overview of every student.
 
 ## Product Purpose

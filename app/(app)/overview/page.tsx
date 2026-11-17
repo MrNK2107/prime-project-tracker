@@ -11,8 +11,8 @@ export default async function PrincipalOverview() {
   const data = await loadDashboard();
   return (
     <>
-      <PageHeader title="Overview" description="A read-only view of confirmed results across all students. Unconfirmed claims are shown separately." />
-      <DashboardView data={data} />
+      <PageHeader title="Overview" description="Confirmed results across all students. Unconfirmed claims are shown separately." />
+      <DashboardView data={data} studentLink={(id) => `/students/${id}`} />
     </>
   );
 }

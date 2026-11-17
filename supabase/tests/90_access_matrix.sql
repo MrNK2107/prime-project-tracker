@@ -187,11 +187,11 @@ select is(tests.counts(),
   'inactive user with a still-valid session: every table empty');
 select ok(tests.all_writes_denied(), 'inactive user: every direct write refused');
 
-select tests.as_user('33333333-0000-0000-0000-000000000001');   -- admin: accounts and links, no results
+select tests.as_user('33333333-0000-0000-0000-000000000001');   -- admin: reads everything, manages accounts and links
 select is(tests.counts(),
-  '{"profiles":12,"departments":2,"groups":1,"hod_assignments":1,"group_leads":1,"student_year":4,"department_memberships":4,"group_members":2,"mentorships":4,"items":0,"invitations":0,"results":0,"audit_log_readable":true}'::jsonb,
-  'admin: accounts and links, but no items, invitations or results');
-select ok(tests.all_writes_denied(), 'admin: no direct writes to items, invitations, results, audit log');
+  '{"profiles":12,"departments":2,"groups":1,"hod_assignments":1,"group_leads":1,"student_year":4,"department_memberships":4,"group_members":2,"mentorships":4,"items":2,"invitations":3,"results":3,"audit_log_readable":true}'::jsonb,
+  'admin: reads everything');
+select ok(tests.all_writes_denied(), 'admin: no direct writes to items, invitations, results, audit log (admin reads everything but cannot forge records)');
 
 select tests.as_user('44444444-0000-0000-0000-000000000001');   -- principal: everything, read-only
 select is(tests.counts(),

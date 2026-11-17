@@ -29,6 +29,10 @@ export function resolveRedirect(pathname: string, session: { role: UserRole } | 
   if (pathname === "/" || inSection(pathname, "/login")) return home;
   if (inSection(pathname, "/auth/callback")) return null;
   if (inSection(pathname, home)) return null;
+  // Shared read-only pages: the principal and admin read everything; faculty read their own students.
+  if (session.role !== "student" && inSection(pathname, "/students")) return null;
+  // The admin also reads the school-wide overview.
+  if (session.role === "admin" && inSection(pathname, "/overview")) return null;
   return home;
 }
 

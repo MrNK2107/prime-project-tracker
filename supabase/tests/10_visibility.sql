@@ -144,7 +144,7 @@ select is(public.can_see_student('11111111-0000-0000-0000-000000000001', '111111
 select is(public.can_see_student('44444444-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000004'),
   true, 'can_see_student: principal -> any student');
 select is(public.can_see_student('33333333-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001'),
-  false, 'can_see_student: admin -> no student');
+  true, 'can_see_student: admin -> any student (admin reads everything)');
 
 -- ---------------------------------------------------------------- mentor M1
 select tests.as_user('22222222-0000-0000-0000-000000000001');

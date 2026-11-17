@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerClient } from "@/lib/supabase/server";
+import { activeOn, todayIso, type DatedLink as Link } from "@/lib/links";
 
 export type Person = {
   id: string;
@@ -21,17 +22,10 @@ export type Group = {
   members: { id: string; name: string }[];
 };
 
-type Link = { valid_from: string; valid_to: string | null };
-
-/** Same rule as the database: active from valid_from through valid_to inclusive. */
-function activeOn(l: Link, today: string) {
-  return l.valid_from <= today && (l.valid_to === null || l.valid_to >= today);
-}
-
 /** Everything the admin screens need, read with the admin's own session (row-level security applies). */
 export async function loadAdminData() {
   const supabase = await createServerClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
 
   const [profiles, years, memberships, mentorships, groupMembers, groupLeads, hods, departments, groups] = await Promise.all([
     supabase.from("profiles").select("id, email, full_name, role, active").order("full_name"),

@@ -5,7 +5,11 @@ export type NavItem = { href: string; label: string; icon: "inbox" | "check" | "
 /** Primary navigation per role. Paths beyond each role's home are added as Tasks 8 to 11 land. */
 export const NAV: Record<UserRole, NavItem[]> = {
   student: [{ href: "/student", label: "My items", icon: "inbox" }],
-  faculty: [{ href: "/faculty", label: "Items", icon: "list" }],
+  faculty: [
+    { href: "/faculty", label: "Items", icon: "list" },
+    { href: "/faculty/review", label: "Review", icon: "review" },
+    { href: "/faculty/students", label: "Students", icon: "users" },
+  ],
   admin: [
     { href: "/admin", label: "Accounts", icon: "users" },
     { href: "/admin/links", label: "Links", icon: "link" },

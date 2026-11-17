@@ -182,7 +182,8 @@ $$;
 
 -- ------------------------------------------------------------------ respond_to_invitation
 -- Invited student only (active); new status joined or declined; may switch between
--- joined and declined until the deadline; rejected when now() > deadline.
+-- joined and declined until the deadline; rejected when now() > deadline, and rejected
+-- (status change) once the invitation has any result.
 create function public.respond_to_invitation(p_invitation_id uuid, p_status public.invitation_status)
 returns void
 language plpgsql volatile security definer
@@ -212,6 +213,13 @@ begin
 
   if v_status not in ('invited', 'joined', 'declined') then
     raise exception 'invitation can no longer be changed' using errcode = '22023';
+  end if;
+
+  -- Once a result exists (public.results, created in 0003_results.sql) the student cannot
+  -- un-join: confirmed results are locked and submitted ones must keep a joined invitation.
+  if p_status <> v_status
+     and exists (select 1 from public.results r where r.invitation_id = p_invitation_id) then
+    raise exception 'invitation has a result and can no longer be changed' using errcode = '22023';
   end if;
 
   if v_deadline is not null and now() > v_deadline then

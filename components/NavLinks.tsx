@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Inbox, ListChecks, Plus, ClipboardCheck, Users, Link2, BarChart3 } from "lucide-react";
+import { Inbox, ListChecks, Plus, ClipboardCheck, Users, Link2, BarChart3, GraduationCap } from "lucide-react";
 import styles from "./AppShell.module.css";
 
-const ICONS = { inbox: Inbox, list: ListChecks, plus: Plus, review: ClipboardCheck, users: Users, link: Link2, chart: BarChart3, check: ClipboardCheck };
+const ICONS = { inbox: Inbox, list: ListChecks, plus: Plus, review: ClipboardCheck, users: Users, link: Link2, chart: BarChart3, years: GraduationCap, check: ClipboardCheck };
 
 export type NavLinkItem = { href: string; label: string; iconName: keyof typeof ICONS };
 
@@ -16,7 +16,7 @@ export function NavLinks({ items, variant }: { items: NavLinkItem[]; variant: "t
       <ul>
         {items.map((item) => {
           const Icon = ICONS[item.iconName];
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const active = pathname === item.href || (pathname.startsWith(item.href + "/") && !items.some((o) => o !== item && o.href.startsWith(item.href + "/") && (pathname === o.href || pathname.startsWith(o.href + "/"))));
           return (
             <li key={item.href}>
               <Link href={item.href} aria-current={active ? "page" : undefined} className={styles.navLink}>

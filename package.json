@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:db": "supabase test db"
+    "test:db": "supabase test db",
+    "seed:local": "docker exec -i supabase_db_prime_project_tracker psql -U postgres -v ON_ERROR_STOP=1 < supabase/dev-seed.sql"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

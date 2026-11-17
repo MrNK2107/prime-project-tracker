@@ -10,6 +10,10 @@
 --     description, meeting_url), emails and names never enter the log. `detail` holds ids,
 --     changed column NAMES, and old/new values for a per-table whitelist of non-sensitive
 --     columns only.
+--   * audit writes fail closed: if the audit insert fails, the originating change fails (intentional).
+--   * service_role (lib/audit.ts) may only insert actor_id/action/entity/entity_id/detail
+--     (id and at always take their defaults) and only the app actions in
+--     public.audit_log_app_insert_guard(); it cannot forge trigger-style rows.
 --
 -- detail shape (written by public.audit_row_change):
 --   insert: {"row": {<key cols>, <whitelisted value cols>}}
@@ -53,6 +57,35 @@ create trigger audit_log_no_update_delete
 create trigger audit_log_no_truncate
   before truncate on public.audit_log
   for each statement execute function public.audit_log_immutable();
+
+-- ------------------------------------------------------------------ app insert guard
+-- Rows inserted directly by service_role (lib/audit.ts) are restricted to app events.
+-- SECURITY INVOKER on purpose: it must see the caller in current_user. A security definer
+-- function would always see its owner. Rows written by public.audit_row_change run as that
+-- function's owner (security definer), not as service_role, so this guard does not affect them.
+-- Later migrations extend the allowlist by replacing this function.
+create function public.audit_log_app_insert_guard()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  -- allowlist of actions the app may append through service_role
+  c_app_actions constant text[] := array['proof_view', 'proof_download', 'profile_open'];
+begin
+  if current_user = 'service_role' and not (new.action = any (c_app_actions)) then
+    raise exception 'audit_log: action % may not be inserted by the app', new.action
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function public.audit_log_app_insert_guard() from public, anon, authenticated, service_role;
+
+create trigger audit_log_app_insert_guard
+  before insert on public.audit_log
+  for each row execute function public.audit_log_app_insert_guard();
 
 -- ------------------------------------------------------------------ change trigger
 -- Generic row trigger. Arguments:
@@ -193,7 +226,8 @@ revoke all on sequence public.audit_log_id_seq from public, anon, authenticated,
 -- reads: RLS limits authenticated to the active principal and admin
 grant select on public.audit_log to authenticated;
 -- appends from the app (lib/audit.ts: proof views, profile opens) go through service_role
-grant insert on public.audit_log to service_role;
+-- column-level only: id and at always take their defaults (no backdating, no id squatting)
+grant insert (actor_id, action, entity, entity_id, detail) on public.audit_log to service_role;
 grant usage on sequence public.audit_log_id_seq to service_role;
 
 create policy audit_select on public.audit_log

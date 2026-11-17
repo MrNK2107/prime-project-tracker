@@ -4,7 +4,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(67);
+select plan(76);
 
 -- ---------------------------------------------------------------- helpers
 create schema tests;
@@ -115,13 +115,28 @@ select ok(
   and not has_table_privilege('anon', 'public.audit_log', 'INSERT')
   and has_table_privilege('authenticated', 'public.audit_log', 'SELECT')
   and not has_table_privilege('authenticated', 'public.audit_log', 'INSERT')
-  and has_table_privilege('service_role', 'public.audit_log', 'INSERT'),
-  'audit_log: SELECT for authenticated, INSERT for service_role only, nothing for anon');
+  and not has_table_privilege('service_role', 'public.audit_log', 'INSERT')
+  and has_any_column_privilege('service_role', 'public.audit_log', 'INSERT'),
+  'audit_log: SELECT for authenticated, column INSERT for service_role only, nothing for anon');
+
+select is(
+  (select array_agg(c order by c) from unnest(array['id', 'at', 'actor_id', 'action', 'entity',
+                                                    'entity_id', 'detail']) c
+    where has_column_privilege('service_role', 'public.audit_log', c, 'INSERT')),
+  array['action', 'actor_id', 'detail', 'entity', 'entity_id'],
+  'service_role may insert only actor_id, action, entity, entity_id, detail (not id, not at)');
+
+select is(
+  (select count(*)::int from pg_trigger t
+    where t.tgrelid = 'public.audit_log'::regclass and not t.tgisinternal
+      and t.tgfoid = 'public.audit_log_app_insert_guard()'::regprocedure),
+  1, 'audit_log has the app insert guard trigger');
 
 select ok(
   bool_and(not has_function_privilege(r, f, 'EXECUTE')),
   'audit trigger functions are not executable by public/anon/authenticated/service_role')
-from unnest(array['public.audit_row_change()', 'public.audit_log_immutable()']) f,
+from unnest(array['public.audit_row_change()', 'public.audit_log_immutable()',
+                  'public.audit_log_app_insert_guard()']) f,
      unnest(array['public', 'anon', 'authenticated', 'service_role']) r;
 
 select is(
@@ -440,9 +455,41 @@ select throws_ok($$delete from public.audit_log$$, '42501', null, 'service_role 
 select throws_ok($$truncate public.audit_log$$, '42501', null, 'service_role cannot truncate audit_log');
 select lives_ok(
   $$insert into public.audit_log (actor_id, action, entity, entity_id, detail)
-    values ('44444444-0000-0000-0000-000000000001', 'proof_view', 'results', 'x', '{}')$$,
-  'service_role can append (lib/audit.ts path)');
+    values ('44444444-0000-0000-0000-000000000001', 'proof_view', 'results', 'sr-proof-view', '{}')$$,
+  'service_role can append a proof_view event (lib/audit.ts path)');
+select lives_ok(
+  $$insert into public.audit_log (actor_id, action, entity, entity_id)
+    values ('44444444-0000-0000-0000-000000000001', 'profile_open', 'profiles', 'sr-profile-open')$$,
+  'service_role can append a profile_open event');
+select throws_ok(
+  $$insert into public.audit_log (at, actor_id, action, entity, entity_id)
+    values (now() - interval '1 year', null, 'proof_view', 'results', 'sr-backdated')$$,
+  '42501', null, 'service_role cannot set at (no backdating)');
+select throws_ok(
+  $$insert into public.audit_log (id, actor_id, action, entity, entity_id)
+    values (999999, null, 'proof_view', 'results', 'sr-id')$$,
+  '42501', null, 'service_role cannot choose id');
+select throws_ok(
+  $$insert into public.audit_log (actor_id, action, entity, entity_id, detail)
+    values ('22222222-0000-0000-0000-000000000006', 'update', 'results', 'sr-forged',
+            '{"old": {"status": "submitted"}, "new": {"status": "confirmed"}}')$$,
+  '42501', null, 'service_role cannot forge a trigger-style update row on results');
+select throws_ok(
+  $$insert into public.audit_log (actor_id, action, entity, entity_id)
+    values (null, 'insert', 'mentorships', 'sr-forged-insert')$$,
+  '42501', null, 'service_role cannot forge a trigger-style insert row');
 reset role;
+
+select is(
+  (select row(a.action, a.at = now(),
+              a.id = (select max(id) from public.audit_log where entity_id like 'sr-%'))::text
+     from public.audit_log a where a.entity_id = 'sr-profile-open'),
+  row('profile_open', true, true)::text,
+  'app row got the default at and the next sequence id');
+select is(
+  (select array_agg(entity_id order by id) from public.audit_log where entity_id like 'sr-%'),
+  array['sr-proof-view', 'sr-profile-open'],
+  'only the two allowed app events were appended by service_role');
 
 -- ---------------------------------------------------------------- append-only: table owner (postgres)
 select throws_ok($$update public.audit_log set action = 'x'$$, '42501', null, 'postgres cannot update audit_log');

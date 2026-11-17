@@ -9,7 +9,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(55);
+select plan(62);
 
 -- ---------------------------------------------------------------- helpers
 create schema tests;
@@ -44,7 +44,7 @@ grant execute on all functions in schema tests to authenticated;
 --                          0004 H2 ex-HOD of D2 (ended yesterday)
 --                          0005 F0 faculty with no links
 --                          0006 X  inactive faculty, active mentorship of S2
--- admin        33333333-...-0001, principal 44444444-...-0001
+-- admin        33333333-...-0001 (and a second admin -0002), principal 44444444-...-0001
 -- departments  aaaaaaaa-...-0001 D1, -0002 D2;  group bbbbbbbb-...-0001 "Prime Project"
 
 select tests.make_user('11111111-0000-0000-0000-000000000001', 'student', 's1');
@@ -58,6 +58,7 @@ select tests.make_user('22222222-0000-0000-0000-000000000004', 'faculty', 'h2');
 select tests.make_user('22222222-0000-0000-0000-000000000005', 'faculty', 'f0');
 select tests.make_user('22222222-0000-0000-0000-000000000006', 'faculty', 'x', false);
 select tests.make_user('33333333-0000-0000-0000-000000000001', 'admin', 'admin');
+select tests.make_user('33333333-0000-0000-0000-000000000002', 'admin', 'admin2');
 select tests.make_user('44444444-0000-0000-0000-000000000001', 'principal', 'principal');
 
 insert into public.departments (id, name) values
@@ -154,8 +155,8 @@ select is(public.can_see_student(auth.uid(), '11111111-0000-0000-0000-0000000000
   'M1 calling can_see_student for self as viewer works');
 select is(public.can_see_student('44444444-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003'), false,
   'an authenticated user cannot probe can_see_student on behalf of another viewer');
-select is((select count(*)::int from public.profiles where role <> 'student'), 8,
-  'M1 sees all 8 faculty/admin/principal profiles (names for display)');
+select is((select count(*)::int from public.profiles where role <> 'student'), 9,
+  'M1 sees all 9 faculty/admin/principal profiles (names for display)');
 select is(array(select student_id from public.mentorships order by student_id),
   array['11111111-0000-0000-0000-000000000001','11111111-0000-0000-0000-000000000002',
         '11111111-0000-0000-0000-000000000004']::uuid[],
@@ -301,24 +302,66 @@ reset role;
 
 -- ---------------------------------------------------------------- admin
 select tests.as_user('33333333-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.profiles), 12, 'admin sees all 12 accounts (account management)');
+select is((select count(*)::int from public.profiles), 13, 'admin sees all 13 accounts (account management)');
 select lives_ok(
   $$insert into public.mentorships (mentor_id, student_id, valid_from)
-    values ('22222222-0000-0000-0000-000000000005', '11111111-0000-0000-0000-000000000004', current_date)$$,
+    values ('22222222-0000-0000-0000-000000000005', '11111111-0000-0000-0000-000000000004', current_date - 10)$$,
   'admin can create a mentorship link');
-update public.mentorships set valid_to = current_date
+-- links are active through valid_to inclusive: ending access today means valid_to = current_date - 1
+update public.mentorships set valid_to = current_date - 1
   where mentor_id = '22222222-0000-0000-0000-000000000005';
+select throws_ok(
+  $$update public.mentorships set valid_from = current_date - 50
+    where mentor_id = '22222222-0000-0000-0000-000000000005'$$,
+  '42501', null, 'admin cannot rewrite valid_from of a link (only valid_to is updatable)');
+select throws_ok(
+  $$update public.mentorships set student_id = '11111111-0000-0000-0000-000000000003'
+    where mentor_id = '22222222-0000-0000-0000-000000000005'$$,
+  '42501', null, 'admin cannot rewrite student_id of a link');
 delete from public.mentorships where mentor_id = '22222222-0000-0000-0000-000000000005';
 update public.profiles set active = false where id = '11111111-0000-0000-0000-000000000004';
 select throws_ok(
   $$update public.profiles set role = 'principal' where id = '22222222-0000-0000-0000-000000000005'$$,
   '42501', null, 'admin cannot promote anyone to principal');
 update public.profiles set active = false where id = '44444444-0000-0000-0000-000000000001';
+-- admin cannot touch own row (escalation: admin -> faculty + self-made mentorship)
+update public.profiles set role = 'faculty' where id = auth.uid();
+update public.profiles set active = false where id = auth.uid();
+select throws_ok(
+  $$update public.profiles set role = 'admin' where id = '22222222-0000-0000-0000-000000000005'$$,
+  '42501', null, 'admin cannot promote another user to admin');
+update public.profiles set role = 'faculty' where id = '33333333-0000-0000-0000-000000000002';
+update public.profiles set active = false where id = '33333333-0000-0000-0000-000000000002';
+
+-- one department per student at a time
+select throws_ok(
+  $$insert into public.department_memberships (student_id, department_id, valid_from)
+    values ('11111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000002', current_date)$$,
+  '23P01', null, 'overlapping department membership is rejected');
+update public.department_memberships set valid_to = current_date - 1
+  where student_id = '11111111-0000-0000-0000-000000000003';
+select lives_ok(
+  $$insert into public.department_memberships (student_id, department_id, valid_from)
+    values ('11111111-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001', current_date)$$,
+  'successor department membership starting the day after the previous valid_to is accepted');
 reset role;
 
 select is(
+  (select array_agg(row(role, active)::text order by id) from public.profiles
+    where id in ('33333333-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000002')),
+  array[row('admin'::public.user_role, true)::text, row('admin'::public.user_role, true)::text],
+  'admin changed neither own row nor another admin''s role/active');
+
+select ok(
+  not bool_or(has_table_privilege(r, 'public.' || t, 'TRUNCATE')),
+  'authenticated and anon have no TRUNCATE on any identity table')
+from unnest(array['profiles','departments','student_year','department_memberships',
+                  'hod_assignments','groups','group_members','group_leads','mentorships']) t,
+     unnest(array['authenticated','anon']) r;
+
+select is(
   (select valid_to from public.mentorships where mentor_id = '22222222-0000-0000-0000-000000000005'),
-  current_date, 'admin ended the link via valid_to; delete removed nothing');
+  current_date - 1, 'admin ended the link via valid_to = yesterday; delete removed nothing');
 select is(
   (select array[(select active from public.profiles where id = '11111111-0000-0000-0000-000000000004'),
                 (select active from public.profiles where id = '44444444-0000-0000-0000-000000000001')]),

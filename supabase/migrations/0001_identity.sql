@@ -4,8 +4,12 @@
 --   * roles: student, faculty, admin, principal. Mentor / group lead / HOD come from link rows.
 --   * links are dated; active when valid_from <= current_date and (valid_to is null or valid_to >= current_date).
 --     Links are never deleted (no delete policy); they are ended by setting valid_to.
+--     A link is active through valid_to inclusive, so ending access today means valid_to = current_date - 1.
+--   * one department per student at a time (exclusion constraint on department_memberships).
 --   * only active profiles (active = true) can read anything.
 --   * admin manages accounts and links only; principal is read-only.
+
+create extension if not exists btree_gist with schema extensions;
 
 create type public.user_role as enum ('student', 'faculty', 'admin', 'principal');
 
@@ -34,7 +38,10 @@ create table public.department_memberships (
   student_id    uuid not null references public.profiles (id),
   department_id uuid not null references public.departments (id),
   valid_from    date not null,
-  valid_to      date null
+  valid_to      date null,
+  -- null valid_to = unbounded; '[]' because valid_to is inclusive
+  constraint department_memberships_one_at_a_time
+    exclude using gist (student_id with =, daterange(valid_from, valid_to, '[]') with &&)
 );
 
 create table public.hod_assignments (
@@ -178,6 +185,17 @@ revoke all on public.profiles, public.departments, public.student_year,
   public.department_memberships, public.hod_assignments, public.groups,
   public.group_members, public.group_leads, public.mentorships from anon;
 
+-- Never delete: no TRUNCATE for API roles.
+revoke truncate on public.profiles, public.departments, public.student_year,
+  public.department_memberships, public.hod_assignments, public.groups,
+  public.group_members, public.group_leads, public.mentorships from authenticated, anon;
+
+-- Link history (who, which, valid_from) is immutable: only valid_to can be updated.
+revoke update on public.department_memberships, public.hod_assignments,
+  public.group_members, public.group_leads, public.mentorships from authenticated;
+grant update (valid_to) on public.department_memberships, public.hod_assignments,
+  public.group_members, public.group_leads, public.mentorships to authenticated;
+
 -- profiles ----------------------------------------------------------
 -- Student rows: only viewers who can see that student (self, principal, links) and admin.
 -- Faculty/admin/principal rows: any active user (to show creator names).
@@ -194,15 +212,22 @@ create policy profiles_select on public.profiles
   );
 
 -- Admin creates and deactivates accounts; nobody else writes profiles.
--- The principal is a single seeded account: admin can neither create nor modify it.
+-- The principal is a single seeded account and admin accounts are created or changed
+-- outside the app: admin can neither create, modify, nor turn anyone into either role.
+-- Admin cannot modify its own row (prevents admin -> faculty self-escalation).
 create policy profiles_admin_insert on public.profiles
   for insert to authenticated
-  with check ((select public.current_role_of()) = 'admin' and role <> 'principal');
+  with check ((select public.current_role_of()) = 'admin'
+              and role not in ('principal', 'admin'));
 
 create policy profiles_admin_update on public.profiles
   for update to authenticated
-  using ((select public.current_role_of()) = 'admin' and role <> 'principal')
-  with check ((select public.current_role_of()) = 'admin' and role <> 'principal');
+  using ((select public.current_role_of()) = 'admin'
+         and id <> (select auth.uid())
+         and role not in ('principal', 'admin'))
+  with check ((select public.current_role_of()) = 'admin'
+              and id <> (select auth.uid())
+              and role not in ('principal', 'admin'));
 
 -- departments / groups: reference data, readable by active users, written by admin.
 create policy departments_select on public.departments

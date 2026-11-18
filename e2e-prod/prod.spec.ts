@@ -111,8 +111,16 @@ test("the placement coordinator filters mentees, group and all, and sees suggest
   await panel.getByLabel("Search suggestions").fill("a");
   await expect(panel.getByRole("button", { name: "Use this" }).first()).toBeVisible();
   // Nothing was posted: no student has an invitation yet.
-  await page.goto("/faculty?view=upcoming");
-  await expect(page.locator("a.event-card")).toHaveCount(0);
+  for (const view of ["attention", "upcoming", "past"]) {
+    await page.goto(`/faculty?scope=all&view=${view}`);
+    await expect(page.locator("a.event-card")).toHaveCount(0);
+  }
+  await expect(page.getByText("No events for these students yet")).toBeVisible();
+  // Tracking by student is there too, and the password moved to the profile page.
+  await page.getByRole("link", { name: "Track by student" }).click();
+  await expect(page.getByRole("heading", { name: "Students", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Your profile" }).click();
+  await expect(page.getByRole("button", { name: "Change password" })).toBeVisible();
 });
 
 test("a student cannot read another student's proofs", async ({ browser }) => {

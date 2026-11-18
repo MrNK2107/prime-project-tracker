@@ -144,10 +144,10 @@ On resume, the Task 4 implementer had been cut off by a network error and left u
 - Carried-forward rules for later tasks: signup must be turned off and the college email domain enforced (Task 7); the admin create-user action must refuse the roles `admin` and `principal` (Task 8); the faculty screen must only render `https` meeting links (Task 9).
 - Machine state: Docker Desktop is running and the local database stack is up. Nothing is deployed anywhere.
 
-### Change request: password sign-in, no codes (18 Nov 2026), done locally, NOT yet on the hosted site
+### Change request: password sign-in, no codes (18 Nov 2026), DONE and live on the hosted site
 - User decision: "remove codes entirely, just email/register no and password sign in". Removed the emailed-code login, the `/auth/callback` link route, the email template and `demo:code`/`demo:links`.
 - Database: `0008_register_no.sql` adds `profiles.register_no` (3-30 letters, digits, / or -; unique ignoring case; students only).
 - App: the login takes "email or register number" plus password. A register number is resolved to its email on the server (service key); every failure shows the same message. Admin creates accounts with an initial password (students also need a register number), can set a new password for any student or faculty account, and everyone can change their own at /account (current password required). Passwords are 8 to 72 characters.
 - Assumptions I made (not yet confirmed): register numbers are for students only; staff sign in with email; admin and principal passwords are set outside the app.
-- Tests: 403 database, unit tests incl. new identifier/admin password tests, 2 local end-to-end tests (register-number sign-in, wrong password, admin reset, self change) all pass. Live-site tests updated but not run (hosted site still on the old code).
+- Tests: 403 database, unit tests incl. new identifier/admin password tests, 2 local end-to-end tests (register-number sign-in, wrong password, admin reset, self change) all pass. Migration 0008 pushed, demo passwords set, redeployed, and the 5 live-site tests pass.
 - Local demo sign-in: password `Demo@1234` (`npm run seed:local`), students 192110001 and 192110002.

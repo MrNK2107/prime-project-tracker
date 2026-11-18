@@ -1,9 +1,9 @@
 # Deploying Prime Project Tracker
 
-## Current state (test deployment, 17 Nov 2026)
+## Current state (test deployment, password sign-in live 18 Nov 2026)
 
 - **Live:** https://prime-project-tracker.vercel.app (Vercel project `prime-project-tracker`, public).
-- **Database:** Supabase project `prime-project-tracker`, ref `qpdecbdiswisgzbrbwzp`, region Mumbai (`ap-south-1`), migrations 0001-0007 applied (**0008_register_no is NOT yet pushed**: run `npx supabase db push --linked` before deploying the password sign-in). Its keys and database password are in the git-ignored `.env.deploy.local` and in Vercel's environment variables (the service key is stored as a Vercel secret).
+- **Database:** Supabase project `prime-project-tracker`, ref `qpdecbdiswisgzbrbwzp`, region Mumbai (`ap-south-1`), all 8 migrations applied (0008 adds register numbers). Its keys and database password are in the git-ignored `.env.deploy.local` and in Vercel's environment variables (the service key is stored as a Vercel secret).
 - **Auth settings pushed:** new signups off, site URL set to the address above. Sign-in is by email or register number plus a password; no emails are sent, so no SMTP provider is needed to sign in.
 - **Demo data:** five demo accounts (`admin@`, `principal@`, `faculty@`, `student@`, `student2@college.edu`) with sample links, items and results, created by `scripts/seed-hosted.mjs`. `ALLOWED_EMAIL_DOMAIN` is set to `college.edu` for the demo. **Before real use:** set the real domain in Vercel, create the real principal and admin (step 4 below), and delete the demo accounts.
 - **Signing in to the demo:** `npm run demo:seed` (re-runnable) creates the demo accounts and sets every demo password to `DEMO_PASSWORD` from `.env.deploy.local`. Sign in with the email (for example `admin@college.edu`) or, for students, the register number (`192110001`, `192110002`).

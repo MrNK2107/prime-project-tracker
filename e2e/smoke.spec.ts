@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 
 /**
@@ -290,7 +291,13 @@ test("the hackathon and placement coordinator filters mentees, group and all, an
   await expect(page.getByRole("link", { name: new RegExp(title) }).first()).toBeVisible();
 });
 
-test("hackathons and internships are suggestions only: nothing is posted until a faculty member creates the event", async ({ page }) => {
+test("hackathons and internships are suggestions only: nothing is posted until a faculty member creates the event", async ({ page, request }) => {
+  // Load the suggestions the way the daily job does (the database starts without them).
+  const secret = process.env.CRON_SECRET ?? /^CRON_SECRET=(.+)$/m.exec(readFileSync(".env.local", "utf8"))?.[1];
+  const refreshed = await request.get("/api/cron/refresh-suggestions", { headers: { Authorization: `Bearer ${secret}` }, timeout: 120_000 });
+  expect(refreshed.ok()).toBe(true);
+  expect(await refreshed.json()).toMatchObject({ ok: true });
+
   await signIn(page, "212223230072", /\/student$/);
   // The imported sheets created no events or invitations for students.
   await expect(page.locator("article", { hasText: /HackZ|K Hacks|Gemma/ })).toHaveCount(0);
@@ -345,4 +352,31 @@ test("a student needs only a register number: no email asked for, and it signs i
   await expect(page.locator("tr", { hasText: `No Email ${stamp}` })).toContainText(reg);
   await expect(page.locator("tr", { hasText: `No Email ${stamp}` })).not.toContainText("@");
   await signIn(page, reg.toLowerCase(), /\/student$/);
+});
+
+test("tracking by event and by student, and the password lives on the profile page", async ({ page }) => {
+  await signIn(page, "karthika.rn@saveetha.ac.in", /\/faculty$/);
+  // The header no longer has a Password link; the name opens the profile.
+  await expect(page.getByRole("link", { name: "Password", exact: true })).toHaveCount(0);
+  await page.getByRole("link", { name: "Your profile" }).click();
+  await expect(page.getByRole("heading", { name: "Profile", exact: true })).toBeVisible();
+  await expect(page.getByText("Hackathon and placement coordinator")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Change password" })).toBeVisible();
+
+  // Student-wise tracking: each student with their events and where they stand.
+  await page.goto("/faculty?scope=all");
+  await page.getByRole("link", { name: "Track by student" }).click();
+  await expect(page).toHaveURL(/\/students/);
+  await expect(page.getByRole("heading", { name: "Students", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: /^All students/ }).click();
+  await expect(page).toHaveURL(/scope=all/);
+  const asha = page.locator("tr", { hasText: "Asha Raman" });
+  await asha.getByText(/^Their events/).click();
+  await expect(asha.getByRole("link", { name: "Smart India Hackathon 2026" })).toBeVisible();
+  await expect(asha.getByText("Confirmed", { exact: true }).first()).toBeVisible();
+
+  // Event-wise tracking is one click back.
+  await page.getByRole("link", { name: "Track by event" }).click();
+  await expect(page).toHaveURL(/\/faculty/);
+  await expect(page.getByRole("heading", { name: "Events", exact: true })).toBeVisible();
 });

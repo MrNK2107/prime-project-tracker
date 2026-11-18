@@ -6,7 +6,8 @@ import { PageHeader, EmptyState } from "@/components/ui";
 import { TYPE_LABEL } from "@/components/ResultBadge";
 import { FunnelBar, FunnelFigures } from "@/components/TrackingBits";
 import { EventCalendar } from "@/components/EventCalendar";
-import { loadEventTracking, type EventTrack } from "@/lib/faculty/tracking";
+import { loadEventTracking, narrowEvents, type EventTrack } from "@/lib/faculty/tracking";
+import { TrackingSwitch } from "@/components/TrackingSwitch";
 import { audienceTabs, getMyScope, hasAnyScope } from "@/lib/faculty/scope";
 import { needsAttention, phaseOf } from "@/lib/tracking";
 import { formatWhen } from "@/lib/time";
@@ -56,10 +57,10 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(sp.month ?? "") ? (sp.month as string) : today.slice(0, 7);
 
   // Audience filter, in priority order: mentees, groups, departments, everyone you can see.
-  const scope = await getMyScope();
+  const [scope, everything] = await Promise.all([getMyScope(), loadEventTracking()]);
   const tabs = audienceTabs(scope);
   const tab = tabs.find((t) => t.id === sp.scope) ?? tabs[0];
-  const loaded = await loadEventTracking(tab?.ids ? { studentIds: tab.ids } : {});
+  const loaded = narrowEvents(everything, tab?.ids ?? null);
   const events = onlyMine ? loaded.filter((e) => e.mine) : loaded;
 
   const now = new Date();
@@ -92,6 +93,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
         action={hasAnyScope(scope) ? <Link href="/faculty/events/new" className="btn btn-primary"><Plus size={18} aria-hidden="true" /> New event</Link> : undefined}
       />
 
+      <TrackingSwitch active="event" />
       {tabs.length > 1 && (
         <div className="tabs" aria-label="Which students" style={{ marginBottom: "0.75rem" }}>
           {tabs.map((t) => (

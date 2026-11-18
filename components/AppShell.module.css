@@ -253,3 +253,18 @@
 .signoutLabel {
   white-space: nowrap;
 }
+
+/* Name and avatar together open the profile page (where the password is changed). */
+.profileLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 0.15rem 0.15rem 0.15rem 0.6rem;
+  transition: background 160ms var(--ease);
+}
+.profileLink:hover {
+  background: rgba(255, 255, 255, 0.12);
+}

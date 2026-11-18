@@ -1,5 +1,7 @@
 import "server-only";
+import { cache } from "react";
 import { createServerClient } from "@/lib/supabase/server";
+import { currentUserId } from "@/lib/supabase/auth";
 import { activeOn, todayIso, type DatedLink } from "@/lib/links";
 import { buildDashboard, type CountRow, type Dashboard, type StudentInfo } from "@/lib/dashboards/aggregate";
 
@@ -7,19 +9,30 @@ type Row = Record<string, unknown>;
 const str = (v: unknown) => String(v ?? "");
 
 /** Departments the signed-in faculty member heads right now (empty for everyone else). */
-export async function myDepartments(): Promise<{ id: string; name: string }[]> {
+export const myDepartments = cache(async (): Promise<{ id: string; name: string }[]> => {
   const sb = await createServerClient();
-  const { data: auth } = await sb.auth.getUser();
-  if (!auth?.user) return [];
+  const me = await currentUserId();
+  if (!me) return [];
   const [hods, departments] = await Promise.all([
-    sb.from("hod_assignments").select("department_id, valid_from, valid_to").eq("faculty_id", auth.user.id),
+    sb.from("hod_assignments").select("department_id, valid_from, valid_to").eq("faculty_id", me),
     sb.from("departments").select("id, name"),
   ]);
   if (hods.error || departments.error) return [];
   const today = todayIso();
   const ids = new Set((hods.data as Row[]).filter((h) => activeOn(h as unknown as DatedLink, today)).map((h) => str(h.department_id)));
   return (departments.data as Row[]).filter((d) => ids.has(str(d.id))).map((d) => ({ id: str(d.id), name: str(d.name) }));
-}
+});
+
+/** Whether the caller heads a department now: one small query, for the navigation bar shown on every page. */
+export const isHeadOfDepartment = cache(async (): Promise<boolean> => {
+  const me = await currentUserId();
+  if (!me) return false;
+  const sb = await createServerClient();
+  const { data, error } = await sb.from("hod_assignments").select("valid_from, valid_to").eq("faculty_id", me);
+  if (error || !data) return false;
+  const today = todayIso();
+  return (data as Row[]).some((h) => activeOn(h as unknown as DatedLink, today));
+});
 
 /**
  * Dashboard for the students the caller can see. With `departmentId`, only students currently in that

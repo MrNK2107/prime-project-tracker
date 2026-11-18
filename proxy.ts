@@ -22,12 +22,14 @@ export async function proxy(request: NextRequest) {
   );
 
   let session: { role: UserRole } | null = null;
-  const { data: auth } = await supabase.auth.getUser();
-  if (auth?.user) {
+  // getClaims checks the token's signature locally (and refreshes it when needed) instead of calling the auth server.
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub ?? null;
+  if (userId) {
     const { data } = await supabase
       .from("profiles")
       .select("role, active")
-      .eq("id", auth.user.id)
+      .eq("id", userId)
       .maybeSingle();
     if (data && data.active === true) session = { role: data.role as UserRole };
   }

@@ -4,6 +4,7 @@ import { logEvent } from "@/lib/audit";
 import { activeOn, todayIso, type DatedLink } from "@/lib/links";
 import { getMyScope, coordinatedStudentIds } from "@/lib/faculty/scope";
 import { fetchAll } from "@/lib/supabase/paged";
+import { currentUserId } from "@/lib/supabase/auth";
 import { summarizeResults, type ResultRow, type ResultView } from "@/lib/results";
 
 /**
@@ -93,8 +94,7 @@ export async function listVisibleStudents(): Promise<StudentRow[]> {
 /** Submitted results the caller may confirm or send back: they created the event, are the student's mentor now, or coordinate the student's group. */
 export async function listReviewQueue(): Promise<ReviewRow[]> {
   const sb = await createServerClient();
-  const { data: auth } = await sb.auth.getUser();
-  const me = auth?.user?.id;
+  const me = await currentUserId();
   if (!me) return [];
 
   const [results, invitations, items, profiles, mentorships, scope] = await Promise.all([
@@ -141,8 +141,7 @@ export async function listReviewQueue(): Promise<ReviewRow[]> {
 /** Items the caller created, with how many students were invited, joined, and results awaiting review. */
 export async function listMyItems(): Promise<MyItem[]> {
   const sb = await createServerClient();
-  const { data: auth } = await sb.auth.getUser();
-  const me = auth?.user?.id;
+  const me = await currentUserId();
   if (!me) return [];
 
   const [items, invitations, results] = await Promise.all([

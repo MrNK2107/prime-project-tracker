@@ -1,5 +1,8 @@
 import "server-only";
+import { cache } from "react";
 import { createServerClient } from "@/lib/supabase/server";
+import { currentUserId } from "@/lib/supabase/auth";
+import { fetchAll } from "@/lib/supabase/paged";
 import { activeOn, todayIso, type DatedLink } from "@/lib/links";
 
 /**
@@ -20,43 +23,48 @@ const live = (rows: Row[], today: string) => rows.filter((r) => activeOn(r as un
 
 export const EMPTY_SCOPE: Scope = { mentees: [], groups: [], departments: [], placement: false };
 
-export async function getMyScope(): Promise<Scope> {
-  const sb = await createServerClient();
-  const { data: auth } = await sb.auth.getUser();
-  const me = auth?.user?.id;
+export const getMyScope = cache(async (): Promise<Scope> => {
+  const me = await currentUserId();
   if (!me) return EMPTY_SCOPE;
+  const sb = await createServerClient();
 
-  const [mentorships, leads, hods, groups, departments, groupMembers, memberships, placement] = await Promise.all([
+  // Round 1: only the caller's own links, plus the (small) name lists.
+  const [mentorships, leads, hods, groups, departments, placement] = await Promise.all([
     sb.from("mentorships").select("student_id, valid_from, valid_to").eq("mentor_id", me),
     sb.from("group_leads").select("group_id, valid_from, valid_to, is_coordinator").eq("faculty_id", me),
     sb.from("hod_assignments").select("department_id, valid_from, valid_to").eq("faculty_id", me),
     sb.from("groups").select("id, name"),
     sb.from("departments").select("id, name"),
-    sb.from("group_members").select("student_id, group_id, valid_from, valid_to"),
-    sb.from("department_memberships").select("student_id, department_id, valid_from, valid_to"),
     sb.from("placement_coordinators").select("valid_from, valid_to").eq("faculty_id", me),
   ]);
-  if ([mentorships, leads, hods, groups, departments, groupMembers, memberships, placement].some((r) => r.error)) return EMPTY_SCOPE;
+  if ([mentorships, leads, hods, groups, departments, placement].some((r) => r.error)) return EMPTY_SCOPE;
 
   const today = todayIso();
   const activeLeads = live(leads.data as Row[], today);
-  const ledIds = new Set(activeLeads.map((l) => str(l.group_id)));
+  const ledIds = [...new Set(activeLeads.map((l) => str(l.group_id)))];
   const coordinatorIds = new Set(activeLeads.filter((l) => l.is_coordinator === true).map((l) => str(l.group_id)));
-  const headedIds = new Set(live(hods.data as Row[], today).map((h) => str(h.department_id)));
+  const headedIds = [...new Set(live(hods.data as Row[], today).map((h) => str(h.department_id)))];
+
+  // Round 2: member rows only for the groups led and departments headed (not the whole college).
+  const [groupMembers, deptMembers] = await Promise.all([
+    ledIds.length ? fetchAll((a, b) => sb.from("group_members").select("student_id, group_id, valid_from, valid_to", { count: "exact" }).in("group_id", ledIds).order("id").range(a, b)) : Promise.resolve({ data: [] as Row[], error: null }),
+    headedIds.length ? fetchAll((a, b) => sb.from("department_memberships").select("student_id, department_id, valid_from, valid_to", { count: "exact" }).in("department_id", headedIds).order("id").range(a, b)) : Promise.resolve({ data: [] as Row[], error: null }),
+  ]);
+  if (groupMembers.error || deptMembers.error) return EMPTY_SCOPE;
   const members = live(groupMembers.data as Row[], today);
-  const deptMembers = live(memberships.data as Row[], today);
+  const dMembers = live(deptMembers.data as Row[], today);
 
   return {
     placement: live(placement.data as Row[], today).length > 0,
     mentees: live(mentorships.data as Row[], today).map((m) => str(m.student_id)),
     groups: (groups.data as Row[])
-      .filter((g) => ledIds.has(str(g.id)))
+      .filter((g) => ledIds.includes(str(g.id)))
       .map((g) => ({ id: str(g.id), name: str(g.name), studentIds: members.filter((m) => str(m.group_id) === str(g.id)).map((m) => str(m.student_id)), coordinator: coordinatorIds.has(str(g.id)) })),
     departments: (departments.data as Row[])
-      .filter((d) => headedIds.has(str(d.id)))
-      .map((d) => ({ id: str(d.id), name: str(d.name), studentIds: deptMembers.filter((m) => str(m.department_id) === str(d.id)).map((m) => str(m.student_id)) })),
+      .filter((d) => headedIds.includes(str(d.id)))
+      .map((d) => ({ id: str(d.id), name: str(d.name), studentIds: dMembers.filter((m) => str(m.department_id) === str(d.id)).map((m) => str(m.student_id)) })),
   };
-}
+});
 
 export function hasAnyScope(s: Scope): boolean {
   return s.placement || s.mentees.length > 0 || s.groups.length > 0 || s.departments.length > 0;

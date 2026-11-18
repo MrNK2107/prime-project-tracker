@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerClient } from "@/lib/supabase/server";
+import { currentUserId } from "@/lib/supabase/auth";
 import { summarizeResults, type ResultRow, type ResultView } from "@/lib/results";
 import { safeHttpsUrl } from "@/lib/url";
 
@@ -30,8 +31,7 @@ const str = (v: unknown) => String(v ?? "");
 /** The signed-in student's own invitations, newest item first. Only their own rows are ever returned. */
 export async function listMyInvitations(now: Date = new Date()): Promise<InvitationRow[]> {
   const sb = await createServerClient();
-  const { data: auth } = await sb.auth.getUser();
-  const me = auth?.user?.id;
+  const me = await currentUserId();
   if (!me) return [];
 
   const invitations = await sb.from("invitations").select("id, item_id, student_id, status").eq("student_id", me);

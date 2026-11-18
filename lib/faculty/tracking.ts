@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/supabase/paged";
+import { currentUserId } from "@/lib/supabase/auth";
 import { activeOn, todayIso, type DatedLink } from "@/lib/links";
 import { summarizeResults, type ResultRow, type ResultView } from "@/lib/results";
 import { funnelOf, isOverdue, stageOf, type Funnel, type Stage } from "@/lib/tracking";
@@ -53,8 +54,7 @@ export type TrackingFilter = { eventId?: string; mineOnly?: boolean; studentIds?
  */
 export async function loadEventTracking(filter: TrackingFilter = {}): Promise<EventTrack[]> {
   const sb = await createServerClient();
-  const { data: auth } = await sb.auth.getUser();
-  const me = auth?.user?.id ?? "";
+  const me = (await currentUserId()) ?? "";
 
   const itemsQ = sb.from("items").select("id, title, type, description, meeting_url, starts_at, deadline, requires_confirmation, requires_proof, created_by, created_at");
   const [items, invitations, results, profiles, memberships, departments] = await Promise.all([
@@ -65,7 +65,7 @@ export async function loadEventTracking(filter: TrackingFilter = {}): Promise<Ev
       return (filter.eventId ? q.eq("item_id", filter.eventId) : q).order("id").range(a, b);
     }),
     fetchAll((a, b) => sb.from("results").select("id, invitation_id, revision, outcome, details, proof_path, status, review_note, submitted_at", { count: "exact" }).order("id").range(a, b)),
-    fetchAll((a, b) => sb.from("profiles").select("id, full_name, email, role", { count: "exact" }).order("id").range(a, b)),
+    fetchAll((a, b) => sb.from("profiles").select("id, full_name, email, role, active", { count: "exact" }).order("id").range(a, b)),
     fetchAll((a, b) => sb.from("department_memberships").select("student_id, department_id, valid_from, valid_to", { count: "exact" }).order("id").range(a, b)),
     sb.from("departments").select("id, name"),
   ]);
@@ -76,6 +76,8 @@ export async function loadEventTracking(filter: TrackingFilter = {}): Promise<Ev
   const today = todayIso();
   const now = new Date();
   const name = new Map((profiles.data as Row[]).map((p) => [str(p.id), str(p.full_name) || str(p.email)]));
+  // Deactivated students are out of the picture: they do not count in any tracking number.
+  const inactive = new Set((profiles.data as Row[]).filter((p) => p.role === "student" && p.active !== true).map((p) => str(p.id)));
   const deptName = new Map((departments.data as Row[]).map((d) => [str(d.id), str(d.name)]));
   const deptOf = new Map<string, string>();
   for (const m of memberships.data as Row[]) {
@@ -98,7 +100,7 @@ export async function loadEventTracking(filter: TrackingFilter = {}): Promise<Ev
   for (const it of items.data as Row[]) {
     if (filter.mineOnly && str(it.created_by) !== me) continue;
     const deadline = orNull(it.deadline);
-    let participants: Participant[] = (invsByItem.get(str(it.id)) ?? []).map((i) => {
+    let participants: Participant[] = (invsByItem.get(str(it.id)) ?? []).filter((i) => !inactive.has(str(i.student_id))).map((i) => {
       const summary = summarizeResults(resultsByInv.get(str(i.id)) ?? []);
       const stage = stageOf(str(i.status), summary.result?.state ?? null);
       return {
@@ -117,6 +119,8 @@ export async function loadEventTracking(filter: TrackingFilter = {}): Promise<Ev
       participants = participants.filter((p) => filter.studentIds!.has(p.studentId));
       if (participants.length === 0) continue;
     }
+    // An event whose only invitees are deactivated students has nothing to track (unless it is yours: you may still be setting it up).
+    if (participants.length === 0 && str(it.created_by) !== me && (invsByItem.get(str(it.id)) ?? []).length > 0) continue;
     participants.sort((a, b) => a.name.localeCompare(b.name));
     out.push({
       id: str(it.id),
@@ -157,6 +161,33 @@ export function progressByStudent(events: EventTrack[]): Map<string, StudentProg
       if (p.stage === "no_reply") row.noReply += 1;
       if (p.overdue) row.overdue += 1;
       m.set(p.studentId, row);
+    }
+  }
+  return m;
+}
+
+/** Narrows already-loaded events to some students, recomputing each event's numbers; events left empty drop out. */
+export function narrowEvents(events: EventTrack[], studentIds: Set<string> | null): EventTrack[] {
+  if (!studentIds) return events;
+  const out: EventTrack[] = [];
+  for (const e of events) {
+    const participants = e.participants.filter((p) => studentIds.has(p.studentId));
+    if (participants.length === 0) continue;
+    out.push({ ...e, participants, funnel: funnelOf(participants) });
+  }
+  return out;
+}
+
+export type StudentEvent = { eventId: string; title: string; type: string; stage: Participant["stage"]; overdue: boolean };
+
+/** Student-wise view: for each student, every event they are in with where they stand on it. */
+export function eventsByStudent(events: EventTrack[]): Map<string, StudentEvent[]> {
+  const m = new Map<string, StudentEvent[]>();
+  for (const e of events) {
+    for (const p of e.participants) {
+      const list = m.get(p.studentId) ?? [];
+      list.push({ eventId: e.id, title: e.title, type: e.type, stage: p.stage, overdue: p.overdue });
+      m.set(p.studentId, list);
     }
   }
   return m;

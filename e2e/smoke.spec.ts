@@ -304,7 +304,8 @@ test("hackathons and internships are suggestions only: nothing is posted until a
 
   await signIn(page, "karthika.rn@saveetha.ac.in", /\/faculty$/);
   await page.goto("/faculty/events/new");
-  const panel = page.locator("details", { hasText: "Suggestions" });
+  const panel = page.locator("details", { hasText: "Need ideas" });
+  await panel.locator("summary").click();
   await expect(panel).toContainText("nothing is posted until you create the event");
 
   // Browse, filter and pick an internship: it only fills the form.
@@ -312,8 +313,8 @@ test("hackathons and internships are suggestions only: nothing is posted until a
   await panel.getByLabel("Search suggestions").fill("Salesforce");
   await panel.getByRole("button", { name: "Use this" }).first().click();
   await expect(page.getByLabel("Title")).toHaveValue(/Salesforce/);
-  await expect(page.getByLabel("Details (optional)")).not.toHaveValue("");
-  await expect(page.getByLabel("Meeting link (optional)")).toHaveValue(/^https:\/\//);
+  await expect(page.getByLabel("Details", { exact: true })).not.toHaveValue("");
+  await expect(page.getByLabel("Link", { exact: true })).toHaveValue(/^https:\/\//);
   await expect(page.getByRole("radio", { name: "Internship" })).toBeChecked();
   const picked = await page.getByLabel("Title").inputValue();
   const posted = `${picked} ${stamp}`;
@@ -322,7 +323,8 @@ test("hackathons and internships are suggestions only: nothing is posted until a
 
   // Using one and choosing an audience posts a real event.
   await page.goto("/faculty/events/new");
-  const again = page.locator("details", { hasText: "Suggestions" });
+  const again = page.locator("details", { hasText: "Need ideas" });
+  await again.locator("summary").click();
   await again.getByLabel("Search suggestions").fill("Salesforce");
   await again.getByRole("button", { name: "Use this" }).first().click();
   await page.getByLabel("Title").fill(posted);

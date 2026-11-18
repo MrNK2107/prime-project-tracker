@@ -106,7 +106,8 @@ test("the placement coordinator filters mentees, group and all, and sees suggest
   await expect(page.locator("tbody tr")).toHaveCount(81);
 
   await page.goto("/faculty/events/new");
-  const panel = page.locator("details", { hasText: "Suggestions" });
+  const panel = page.locator("details", { hasText: "Need ideas" });
+  await panel.locator("summary").click();
   await expect(panel).toContainText("nothing is posted until you create the event");
   await panel.getByLabel("Search suggestions").fill("a");
   await expect(panel.getByRole("button", { name: "Use this" }).first()).toBeVisible();

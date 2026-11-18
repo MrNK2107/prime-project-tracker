@@ -20,10 +20,10 @@ const TYPES = [
   { id: "meeting", label: "Meeting" },
 ];
 
-function Check({ name, value, label, hint }: { name: string; value?: string; label: string; hint?: string }) {
+function Check({ name, value, label, hint, defaultChecked }: { name: string; value?: string; label: string; hint?: string; defaultChecked?: boolean }) {
   return (
     <label style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start", minHeight: 44, padding: "0.4rem 0", cursor: "pointer" }}>
-      <input type="checkbox" name={name} value={value} style={{ width: 18, height: 18, marginTop: 3, accentColor: "var(--brand)" }} />
+      <input type="checkbox" name={name} value={value} defaultChecked={defaultChecked} style={{ width: 18, height: 18, marginTop: 3, accentColor: "var(--brand)" }} />
       <span>
         <span style={{ fontWeight: 600 }}>{label}</span>
         {hint && <span className="hint" style={{ display: "block" }}>{hint}</span>}
@@ -31,6 +31,8 @@ function Check({ name, value, label, hint }: { name: string; value?: string; lab
     </label>
   );
 }
+
+const legend = { fontWeight: 650, marginBottom: "0.25rem" } as const;
 
 export default async function NewEventPage() {
   await connection();
@@ -52,10 +54,30 @@ export default async function NewEventPage() {
   }
   const pickable = students.filter((s) => s.active).map((s) => ({ id: s.id, name: s.fullName, sub: [s.department, s.year ? `Year ${s.year}` : null].filter(Boolean).join(" · ") }));
 
+  // Mentors (and the placement coordinator) run events hands-on, so they get the full form. A group lead or head of
+  // department only says what it is and who it is for; everything else sits behind "More options".
+  const full = scope.mentees.length > 0 || scope.placement;
+  const choices = (scope.mentees.length > 0 ? 1 : 0) + groups.length + departments.length;
+  const only = !scope.placement && choices === 1; // a single possible audience is ticked for them
+
+  const extras = (
+    <>
+      <fieldset style={{ border: 0 }}>
+        <legend style={legend}>Year of study (optional)</legend>
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+          {[1, 2, 3, 4].map((y) => <Check key={y} name="years" value={String(y)} label={`Year ${y}`} />)}
+        </div>
+      </fieldset>
+      <div>
+        <p style={{ fontWeight: 650, marginBottom: "0.4rem" }}>Specific students (optional)</p>
+        <StudentPicker students={pickable} />
+      </div>
+    </>
+  );
+
   return (
     <>
-      <PageHeader title="New event" description="Post an event for your students, then choose exactly who it is for." />
-      <SuggestionPicker suggestions={suggestions} />
+      <PageHeader title="New event" description={full ? "Post an event for your students, then choose exactly who it is for." : "Name the event and pick who it is for. That is all that is needed."} />
       <ActionForm action={createItemAction} submit="Create event" pendingLabel="Creating">
         <section className="panel rise" aria-labelledby="what">
           <h2 id="what" className="panel-title">What is it?</h2>
@@ -74,77 +96,79 @@ export default async function NewEventPage() {
               <label htmlFor="title">Title</label>
               <input id="title" name="title" className="input" required autoComplete="off" placeholder="e.g. Smart India Hackathon 2026" />
             </div>
-            <div className="field">
-              <label htmlFor="description">Details (optional)</label>
-              <textarea id="description" name="description" className="input" rows={3} style={{ minHeight: 88, padding: "0.6rem 0.875rem", resize: "vertical" }} />
-            </div>
-            <div className="form-row">
-              <div className="field">
-                <label htmlFor="startsAt">Starts (India time, optional)</label>
-                <input id="startsAt" name="startsAt" type="datetime-local" className="input" />
-              </div>
-              <div className="field">
-                <label htmlFor="deadline">Reply by (optional)</label>
-                <input id="deadline" name="deadline" type="datetime-local" className="input" />
-              </div>
-            </div>
-            <div className="field">
-              <label htmlFor="meetingUrl">Meeting link (optional)</label>
-              <input id="meetingUrl" name="meetingUrl" type="url" className="input" placeholder="https://meet.google.com/..." autoComplete="off" />
-              <span className="hint">Only https links are accepted.</span>
-            </div>
           </div>
-        </section>
-
-        <section className="panel rise" aria-labelledby="rules">
-          <h2 id="rules" className="panel-title">What do you need back?</h2>
-          <Check name="requiresConfirmation" label="Results must be confirmed" hint="A result counts only after you or the student's mentor confirms it." />
-          <Check name="requiresProof" label="Proof is required" hint="Students must attach a PDF, JPG or PNG up to 5 MB." />
         </section>
 
         <section className="panel rise" aria-labelledby="who">
           <h2 id="who" className="panel-title">Who is it for?</h2>
           <p className="hint" style={{ marginBottom: "0.75rem" }}>
-            Choose any mix. Students are invited once even if they match several choices. You can only invite students you are responsible for: your mentees, the group you lead, or the department you head (a placement coordinator can invite anyone).
+            Students are invited once even if they match several choices. You can only invite students you are responsible for.
           </p>
           <div style={{ display: "grid", gap: "1.25rem" }}>
             {scope.placement && (
               <fieldset style={{ border: 0 }}>
-                <legend style={{ fontWeight: 650, marginBottom: "0.25rem" }}>As hackathon and placement coordinator</legend>
+                <legend style={legend}>As hackathon and placement coordinator</legend>
                 <Check name="allStudents" label={`All students (${activeCount})`} hint="Posts to every active student in the college." />
               </fieldset>
             )}
             {scope.mentees.length > 0 && (
               <fieldset style={{ border: 0 }}>
-                <legend style={{ fontWeight: 650, marginBottom: "0.25rem" }}>As a mentor</legend>
-                <Check name="allMentees" label={`All my mentees (${scope.mentees.length})`} />
+                <legend style={legend}>As a mentor</legend>
+                <Check name="allMentees" label={`All my mentees (${scope.mentees.length})`} defaultChecked={only} />
               </fieldset>
             )}
             {groups.length > 0 && (
               <fieldset style={{ border: 0 }}>
-                <legend style={{ fontWeight: 650, marginBottom: "0.25rem" }}>{scope.placement ? "Any group" : "As a group lead"}</legend>
-                {groups.map((g) => <Check key={g.id} name="groupIds" value={g.id} label={scope.placement ? g.name : `${g.name} (${g.studentIds.length})`} />)}
+                <legend style={legend}>{scope.placement ? "Any group" : "Your group"}</legend>
+                {groups.map((g) => <Check key={g.id} name="groupIds" value={g.id} defaultChecked={only} label={scope.placement ? g.name : `${g.name} (${g.studentIds.length})`} />)}
               </fieldset>
             )}
             {departments.length > 0 && (
               <fieldset style={{ border: 0 }}>
-                <legend style={{ fontWeight: 650, marginBottom: "0.25rem" }}>{scope.placement ? "Any department" : "As head of department"}</legend>
-                {departments.map((d) => <Check key={d.id} name="departmentIds" value={d.id} label={scope.placement ? d.name : `${d.name} (${d.studentIds.length})`} />)}
+                <legend style={legend}>{scope.placement ? "Any department" : "Your department"}</legend>
+                {departments.map((d) => <Check key={d.id} name="departmentIds" value={d.id} defaultChecked={only} label={scope.placement ? d.name : `${d.name} (${d.studentIds.length})`} />)}
               </fieldset>
             )}
-            <fieldset style={{ border: 0 }}>
-              <legend style={{ fontWeight: 650, marginBottom: "0.25rem" }}>Year of study</legend>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                {[1, 2, 3, 4].map((y) => <Check key={y} name="years" value={String(y)} label={`Year ${y}`} />)}
-              </div>
-            </fieldset>
-            <div>
-              <p style={{ fontWeight: 650, marginBottom: "0.4rem" }}>Specific students</p>
-              <StudentPicker students={pickable} />
-            </div>
+            {full && extras}
           </div>
         </section>
+
+        <details className="panel rise" data-more open={full}>
+          <summary style={{ cursor: "pointer", fontWeight: 650 }}>
+            {full ? "Details and what you need back" : "More options"} <span className="muted" style={{ fontWeight: 500 }}>(optional)</span>
+          </summary>
+          <div style={{ display: "grid", gap: "1rem", marginTop: "0.875rem" }}>
+            <div className="field">
+              <label htmlFor="description">Details</label>
+              <textarea id="description" name="description" className="input" rows={3} style={{ minHeight: 88, padding: "0.6rem 0.875rem", resize: "vertical" }} />
+            </div>
+            <div className="form-row">
+              <div className="field">
+                <label htmlFor="startsAt">Starts (India time)</label>
+                <input id="startsAt" name="startsAt" type="datetime-local" className="input" />
+              </div>
+              <div className="field">
+                <label htmlFor="deadline">Reply by</label>
+                <input id="deadline" name="deadline" type="datetime-local" className="input" />
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="meetingUrl">Link</label>
+              <input id="meetingUrl" name="meetingUrl" type="url" className="input" placeholder="https://..." autoComplete="off" />
+              <span className="hint">Only https links are accepted.</span>
+            </div>
+            <div>
+              <Check name="requiresConfirmation" label="Results must be confirmed" hint="A result counts only after you or the student's mentor confirms it." />
+              <Check name="requiresProof" label="Proof is required" hint="Students must attach a PDF, JPG or PNG up to 5 MB." />
+            </div>
+            {!full && extras}
+          </div>
+        </details>
       </ActionForm>
+
+      <div style={{ marginTop: "1.5rem" }}>
+        <SuggestionPicker suggestions={suggestions} />
+      </div>
     </>
   );
 }

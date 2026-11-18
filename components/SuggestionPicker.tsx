@@ -40,6 +40,7 @@ export function SuggestionPicker({ suggestions }: { suggestions: Suggestion[] })
       const box = document.querySelector<HTMLInputElement>(`input[name="${name}"]`);
       if (box && !box.checked) box.click();
     }
+    document.querySelectorAll<HTMLDetailsElement>("details[data-more]").forEach((d) => { d.open = true; }); // show what was filled
     setUsed(s.id);
     document.getElementById("title")?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -48,9 +49,9 @@ export function SuggestionPicker({ suggestions }: { suggestions: Suggestion[] })
   const tabs = [["all", "All"], ["hackathon", "Hackathons"], ["internship", "Internships"]] as const;
 
   return (
-    <details className="panel rise" style={{ marginBottom: "1.25rem" }} open>
+    <details className="panel rise">
       <summary style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 650 }}>
-        <Lightbulb size={18} aria-hidden="true" /> Suggestions <span className="muted" style={{ fontWeight: 500 }}>({suggestions.length}) · nothing is posted until you create the event</span>
+        <Lightbulb size={18} aria-hidden="true" /> Need ideas? Browse hackathons and internships <span className="muted" style={{ fontWeight: 500 }}>({suggestions.length}) · nothing is posted until you create the event</span>
       </summary>
 
       <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", margin: "0.75rem 0", alignItems: "center" }}>
@@ -81,7 +82,7 @@ export function SuggestionPicker({ suggestions }: { suggestions: Suggestion[] })
               </div>
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 {s.link && <a href={s.link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" aria-label={`Open ${s.title}`}><ExternalLink size={16} aria-hidden="true" /></a>}
-                <button type="button" className="btn btn-secondary" onClick={() => use(s)}>{used === s.id ? "Filled below" : "Use this"}</button>
+                <button type="button" className="btn btn-secondary" onClick={() => use(s)}>{used === s.id ? "Filled in above" : "Use this"}</button>
               </div>
             </li>
           ))}

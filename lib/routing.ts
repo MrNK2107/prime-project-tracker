@@ -11,7 +11,7 @@ export function homeFor(role: UserRole): string {
   return HOME[role];
 }
 
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
+const PUBLIC_PATHS = ["/login"];
 
 function inSection(pathname: string, section: string): boolean {
   return pathname === section || pathname.startsWith(section + "/");
@@ -27,8 +27,9 @@ export function resolveRedirect(pathname: string, session: { role: UserRole } | 
   }
   const home = HOME[session.role];
   if (pathname === "/" || inSection(pathname, "/login")) return home;
-  if (inSection(pathname, "/auth/callback")) return null;
   if (inSection(pathname, home)) return null;
+  // Every signed-in user can change their own password.
+  if (inSection(pathname, "/account")) return null;
   // Shared read-only pages: the principal and admin read everything; faculty read their own students.
   if (session.role !== "student" && inSection(pathname, "/students")) return null;
   // The admin also reads the school-wide overview.

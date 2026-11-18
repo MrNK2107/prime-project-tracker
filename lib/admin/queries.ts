@@ -5,6 +5,7 @@ import { activeOn, todayIso, type DatedLink as Link } from "@/lib/links";
 export type Person = {
   id: string;
   email: string;
+  registerNo: string | null;
   fullName: string;
   role: "student" | "faculty" | "admin" | "principal";
   active: boolean;
@@ -28,7 +29,7 @@ export async function loadAdminData() {
   const today = todayIso();
 
   const [profiles, years, memberships, mentorships, groupMembers, groupLeads, hods, departments, groups] = await Promise.all([
-    supabase.from("profiles").select("id, email, full_name, role, active").order("full_name"),
+    supabase.from("profiles").select("id, email, register_no, full_name, role, active").order("full_name"),
     supabase.from("student_year").select("student_id, year"),
     supabase.from("department_memberships").select("student_id, department_id, valid_from, valid_to"),
     supabase.from("mentorships").select("student_id, mentor_id, valid_from, valid_to"),
@@ -76,6 +77,7 @@ export async function loadAdminData() {
   const people: Person[] = (profiles.data ?? []).map((p) => ({
     id: p.id as string,
     email: p.email as string,
+    registerNo: (p.register_no as string | null) ?? null,
     fullName: (p.full_name as string) ?? "",
     role: p.role as Person["role"],
     active: p.active as boolean,

@@ -1,16 +1,17 @@
 #!/usr/bin/env node
-// DEMO DATA for a hosted test deployment. Creates five demo accounts and sample items/results through the
-// Supabase admin API, then prints one-time sign-in links (the hosted free tier cannot send the code email).
+// DEMO DATA for a hosted test deployment. Creates five demo accounts (email or register number + the password
+// in DEMO_PASSWORD) and sample items/results through the Supabase admin API. Safe to re-run: it also resets the
+// demo passwords to DEMO_PASSWORD.
 //
-//   node --env-file=.env.deploy.local scripts/seed-hosted.mjs            # seed (safe to re-run) and print links
-//   node --env-file=.env.deploy.local scripts/seed-hosted.mjs links       # just print fresh sign-in links
+//   node --env-file=.env.deploy.local scripts/seed-hosted.mjs
 //
-// Needs NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and APP_URL. Delete the demo accounts before real use.
+// Needs NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and DEMO_PASSWORD (8+ characters). Delete the demo accounts before real use.
 import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const app = (process.env.APP_URL ?? "https://prime-project-tracker.vercel.app").replace(/\/$/, "");
+const password = process.env.DEMO_PASSWORD;
+if (!password || password.length < 8) throw new Error("Set DEMO_PASSWORD (8+ characters) in .env.deploy.local");
 if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
 const sb = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
@@ -19,8 +20,8 @@ const U = {
   admin: ["5eed0003-0000-0000-0000-000000000001", `admin@${DOMAIN}`, "Dr. Kavitha Rao", "admin"],
   principal: ["5eed0004-0000-0000-0000-000000000001", `principal@${DOMAIN}`, "Dr. S. Venkatesan", "principal"],
   faculty: ["5eed0002-0000-0000-0000-000000000001", `faculty@${DOMAIN}`, "Dr. Meena Iyer", "faculty"],
-  asha: ["5eed0001-0000-0000-0000-000000000001", `student@${DOMAIN}`, "Asha Raman", "student"],
-  karthik: ["5eed0001-0000-0000-0000-000000000002", `student2@${DOMAIN}`, "Karthik Subramanian", "student"],
+  asha: ["5eed0001-0000-0000-0000-000000000001", `student@${DOMAIN}`, "Asha Raman", "student", "192110001"],
+  karthik: ["5eed0001-0000-0000-0000-000000000002", `student2@${DOMAIN}`, "Karthik Subramanian", "student", "192110002"],
 };
 const CSE = "5eedaaaa-0000-0000-0000-000000000001";
 const ECE = "5eedaaaa-0000-0000-0000-000000000002";
@@ -35,12 +36,15 @@ async function ok(label, p) {
 async function seed() {
   const existing = await sb.auth.admin.listUsers({ perPage: 200 });
   const have = new Set((existing.data?.users ?? []).map((u) => u.email));
-  for (const [id, email, full_name, role] of Object.values(U)) {
+  for (const [id, email, full_name, role, register_no] of Object.values(U)) {
     if (!have.has(email)) {
-      const { error } = await sb.auth.admin.createUser({ id, email, email_confirm: true });
+      const { error } = await sb.auth.admin.createUser({ id, email, password, email_confirm: true });
       if (error) throw new Error(`createUser ${email}: ${error.message}`);
+    } else {
+      const { error } = await sb.auth.admin.updateUserById(id, { password });
+      if (error) throw new Error(`password ${email}: ${error.message}`);
     }
-    await ok(`profile ${email}`, sb.from("profiles").upsert({ id, email, full_name, role, active: true }));
+    await ok(`profile ${email}`, sb.from("profiles").upsert({ id, email, full_name, role, active: true, register_no: register_no ?? null }));
   }
   await ok("departments", sb.from("departments").upsert([{ id: CSE, name: "Computer Science and Engineering" }, { id: ECE, name: "Electronics and Communication Engineering" }]));
   await ok("groups", sb.from("groups").upsert({ id: TEAM, name: "Prime Project Team" }));
@@ -86,14 +90,5 @@ async function seed() {
   console.log("Demo accounts, links, items and results created.");
 }
 
-async function links() {
-  console.log("\nOne-time sign-in links (each works once and expires in about an hour; re-run `links` for fresh ones):");
-  for (const [label, [, email]] of Object.entries(U)) {
-    const { data, error } = await sb.auth.admin.generateLink({ type: "magiclink", email });
-    if (error) throw new Error(`link ${email}: ${error.message}`);
-    console.log(`${label.padEnd(10)} ${email.padEnd(24)} ${app}/auth/callback?token_hash=${data.properties.hashed_token}`);
-  }
-}
-
-if (process.argv[2] !== "links") await seed();
-await links();
+await seed();
+console.log("Demo sign-in: email or register number (students 192110001 and 192110002) with DEMO_PASSWORD.");

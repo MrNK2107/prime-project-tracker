@@ -1,4 +1,5 @@
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { KeyRound, LogOut } from "lucide-react";
 import { SealMark } from "@/components/SealMark";
 import { NavLinks } from "@/components/NavLinks";
 import { signOut } from "@/app/(app)/actions";
@@ -32,6 +33,10 @@ export function AppShell({ profile, isHod = false, children }: { profile: Sessio
               <span className={styles.name}>{profile.fullName || "Signed in"}</span>
               <span className={styles.role}>{ROLE_LABEL[profile.role]}</span>
             </div>
+            <Link href="/account" className={styles.signout} aria-label="Change password">
+              <KeyRound size={18} aria-hidden="true" />
+              <span className={styles.signoutLabel}>Password</span>
+            </Link>
             <span className={styles.avatar} aria-hidden="true">{initial}</span>
             <form action={signOut}>
               <button type="submit" className={styles.signout} aria-label="Sign out">

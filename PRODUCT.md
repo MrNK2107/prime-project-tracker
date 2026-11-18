@@ -24,7 +24,7 @@ Access is enforced in the database by dated relationships (mentor, group lead, H
 
 ## Operating Context
 
-Invite-only: accounts are created by an admin, sign-in is by emailed one-time code on the college email domain. Proof files are PDF, JPG or PNG up to 5 MB and are viewed through short-lived signed links. Hosted on Vercel with Supabase.
+Invite-only: accounts are created by an admin, sign-in is by college email or student register number plus a password (the admin sets the first password and can reset it; people change their own under Password). Proof files are PDF, JPG or PNG up to 5 MB and are viewed through short-lived signed links. Hosted on Vercel with Supabase.
 
 ## Capabilities and Constraints
 

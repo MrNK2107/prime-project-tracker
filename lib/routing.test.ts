@@ -16,9 +16,8 @@ describe("resolveRedirect", () => {
     expect(resolveRedirect("/", null)).toBe("/login");
     expect(resolveRedirect("/admin/users", null)).toBe("/login");
   });
-  it("lets null sessions reach /login and the auth callback", () => {
+  it("lets null sessions reach /login only", () => {
     expect(resolveRedirect("/login", null)).toBeNull();
-    expect(resolveRedirect("/auth/callback", null)).toBeNull();
   });
   it("sends signed-in users from / and /login to their home", () => {
     expect(resolveRedirect("/", { role: "faculty" })).toBe("/faculty");

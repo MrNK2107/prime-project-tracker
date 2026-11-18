@@ -5,49 +5,25 @@ import { test, expect, type Page } from "@playwright/test";
  * posts a hackathon needing confirmation and proof; the student joins and submits with a proof file;
  * the mentor confirms; the department dashboard shows exactly 1 confirmed result.
  */
-const MAILPIT = "http://127.0.0.1:54324/api/v1";
+const PASSWORD = "Demo@1234"; // password of the local seed accounts (supabase/dev-seed.sql)
 const stamp = Date.now().toString(36);
 const mentorEmail = `mentor.${stamp}@college.edu`;
 const studentEmail = `student.${stamp}@college.edu`;
+const studentReg = `E2E${stamp}`.toUpperCase();
+const NEW_PASSWORD = "Fresh#Pass99";
 const deptName = `E2E Department ${stamp}`;
 const itemTitle = `E2E Hackathon ${stamp}`;
 
-type Mail = { messages: { ID: string; To: { Address: string }[] }[] };
-
-async function mailIds(email: string): Promise<Set<string>> {
-  const list = (await (await fetch(`${MAILPIT}/messages`)).json()) as Mail;
-  return new Set(list.messages.filter((m) => m.To.some((t) => t.Address === email)).map((m) => m.ID));
-}
-
-/** Waits for a sign-in email that was not in the inbox before we asked for the code. */
-async function newCode(email: string, before: Set<string>): Promise<string> {
-  for (let i = 0; i < 40; i++) {
-    const list = (await (await fetch(`${MAILPIT}/messages`)).json()) as Mail;
-    const msg = list.messages.find((m) => !before.has(m.ID) && m.To.some((t) => t.Address === email));
-    if (msg) {
-      const body = (await (await fetch(`${MAILPIT}/message/${msg.ID}`)).json()) as { Text: string };
-      const code = body.Text.match(/[0-9]{6}/)?.[0];
-      if (code) return code;
-    }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  throw new Error(`no new sign-in code arrived for ${email}`);
-}
-
-async function signIn(page: Page, email: string, home: RegExp) {
+/** Signs in with an email or register number and a password (no codes). */
+async function signIn(page: Page, identifier: string, home: RegExp, password = PASSWORD) {
   await page.context().clearCookies();
   await page.goto("/login");
-  await page.getByLabel("College email").fill(email);
-  const before = await mailIds(email);
-  // The dev page may not be hydrated yet; click again until the code step appears.
   await expect(async () => {
-    await page.getByRole("button", { name: "Send code" }).click();
-    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible({ timeout: 3000 });
+    await page.getByLabel("Email or register number").fill(identifier);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(home, { timeout: 4000 });
   }).toPass({ timeout: 20_000 });
-  const code = await newCode(email, before);
-  await page.getByLabel("One-time code").fill(code);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(home);
 }
 
 test("admin sets up, mentor posts, student submits, mentor confirms, department shows 1 confirmed", async ({ page }) => {
@@ -60,6 +36,8 @@ test("admin sets up, mentor posts, student submits, mentor confirms, department 
   ]) {
     await page.getByLabel("Full name").fill(name);
     await page.getByLabel("College email").fill(email);
+    if (role === "Student") await page.getByLabel("Register number (students)").fill(studentReg.toLowerCase());
+    await page.getByLabel("Initial password").fill(PASSWORD);
     await page.getByLabel("Role").selectOption({ label: role });
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page.getByText("Account created")).toBeVisible();
@@ -102,7 +80,8 @@ test("admin sets up, mentor posts, student submits, mentor confirms, department 
   await expect(page.getByText("Item created")).toBeVisible();
 
   // ---- student: join, submit with proof
-  await signIn(page, studentEmail, /\/student$/);
+  // The student signs in with the register number (typed in lower case on purpose).
+  await signIn(page, studentReg.toLowerCase(), /\/student$/);
   await expect(page.getByText(itemTitle)).toBeVisible();
   await page.getByRole("button", { name: "Join", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^Joined/ })).toBeVisible();
@@ -140,4 +119,34 @@ test("admin sets up, mentor posts, student submits, mentor confirms, department 
   await expect(page.getByText("Confirmed", { exact: true })).toBeVisible();
   await page.goto("/overview");
   await expect(page.getByText(/confirmed across/)).toBeVisible();
+});
+
+test("wrong passwords are refused; admin resets a password; the student changes their own", async ({ page }) => {
+  await page.goto("/login");
+  await expect(async () => {
+    await page.getByLabel("Email or register number").fill(studentEmail);
+    await page.getByLabel("Password", { exact: true }).fill("not-the-password");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByText("Could not sign in with those details.")).toBeVisible({ timeout: 4000 });
+  }).toPass({ timeout: 20_000 });
+  await expect(page).toHaveURL(/\/login$/);
+  // An unknown register number gets the very same answer.
+  await page.getByLabel("Email or register number").fill("NOSUCH999");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByText("Could not sign in with those details.")).toBeVisible();
+
+  await signIn(page, "admin@college.edu", /\/admin$/);
+  const row = page.locator("tr", { hasText: studentEmail });
+  await row.getByLabel(/New password for/).fill(NEW_PASSWORD);
+  await row.getByRole("button", { name: "Set password" }).click();
+  await expect(row.getByText("Password changed")).toBeVisible();
+
+  await page.context().clearCookies();
+  await signIn(page, studentReg, /\/student$/, NEW_PASSWORD);
+  await page.goto("/account");
+  await page.getByLabel("Current password").fill(NEW_PASSWORD);
+  await page.locator("#next").fill("Another#Pass77");
+  await page.getByRole("button", { name: "Change password" }).click();
+  await expect(page.getByText("Password changed.")).toBeVisible();
+  await signIn(page, studentEmail, /\/student$/, "Another#Pass77");
 });

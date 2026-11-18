@@ -3,20 +3,15 @@
 ## Current state (test deployment, 17 Nov 2026)
 
 - **Live:** https://prime-project-tracker.vercel.app (Vercel project `prime-project-tracker`, public).
-- **Database:** Supabase project `prime-project-tracker`, ref `qpdecbdiswisgzbrbwzp`, region Mumbai (`ap-south-1`), all 7 migrations applied. Its keys and database password are in the git-ignored `.env.deploy.local` and in Vercel's environment variables (the service key is stored as a Vercel secret).
-- **Auth settings pushed:** new signups off, 6-digit codes, 15-minute expiry, site URL set to the address above.
+- **Database:** Supabase project `prime-project-tracker`, ref `qpdecbdiswisgzbrbwzp`, region Mumbai (`ap-south-1`), migrations 0001-0007 applied (**0008_register_no is NOT yet pushed**: run `npx supabase db push --linked` before deploying the password sign-in). Its keys and database password are in the git-ignored `.env.deploy.local` and in Vercel's environment variables (the service key is stored as a Vercel secret).
+- **Auth settings pushed:** new signups off, site URL set to the address above. Sign-in is by email or register number plus a password; no emails are sent, so no SMTP provider is needed to sign in.
 - **Demo data:** five demo accounts (`admin@`, `principal@`, `faculty@`, `student@`, `student2@college.edu`) with sample links, items and results, created by `scripts/seed-hosted.mjs`. `ALLOWED_EMAIL_DOMAIN` is set to `college.edu` for the demo. **Before real use:** set the real domain in Vercel, create the real principal and admin (step 4 below), and delete the demo accounts.
-- **Signing in to the demo:** the free tier cannot send the code email (see "Email" below), so use one-time sign-in links: `npm run demo:links` prints a fresh link for each demo account (each works once and expires in about an hour).
+- **Signing in to the demo:** `npm run demo:seed` (re-runnable) creates the demo accounts and sets every demo password to `DEMO_PASSWORD` from `.env.deploy.local`. Sign in with the email (for example `admin@college.edu`) or, for students, the register number (`192110001`, `192110002`).
 - **Tested against the live site** (`npm run test:prod`, 5 tests): signed-out redirect, signup closed, wrong-domain refusal, every role lands on its own home and is kept out of the others, faculty posts an item needing proof, the student uploads a proof file to hosted storage and submits, faculty opens the proof through a signed link and confirms, the principal's count updates, and another student cannot read the proof.
 
-## Email (the one thing that blocks real users)
+## Email
 
-Supabase's built-in email sender is limited to a few emails per hour and, on the free tier, will not let us change the email template. The app signs people in by entering a code, so the template must contain the code (`supabase/templates/magic_link.html`). To go live with real users:
-
-1. Set up a custom SMTP provider (Resend, SendGrid, Amazon SES, or the college's mail server) in Supabase: Authentication, SMTP Settings.
-2. Then set the template, either in the dashboard (Authentication, Email Templates, Magic Link) or with `npx supabase config push` using the template path in `supabase/config.toml`.
-
-Until then, no emailed code will contain a usable code on the hosted project.
+Sign-in no longer uses email. An SMTP provider is only needed if you later add password-reset or notification emails. Forgotten passwords are reset by the admin on the Accounts page.
 
 ## Steps used (for repeating on another project)
 
@@ -24,9 +19,8 @@ Local development and every test pass without any of this.
 
 ## Decide before you start
 
-- **College email domain** for `ALLOWED_EMAIL_DOMAIN` (for example `saveetha.com`; use the real one). Only addresses on this exact domain can request a sign-in code.
+- **College email domain** for `ALLOWED_EMAIL_DOMAIN` (for example `saveetha.com`; use the real one). Only addresses on this exact domain can sign in with an email (register numbers are looked up in the database).
 - **The principal's and the first admin's real email addresses.** These two accounts are created by hand (below); the app never creates them.
-- **An email sender (SMTP).** Supabase's built-in sender is limited to a handful of emails per hour, which is not enough for a college. Use a real provider (Resend, SendGrid, Amazon SES, or the college's own mail server).
 
 ## 1. Create the Supabase project
 
@@ -49,9 +43,7 @@ Do not run `supabase/dev-seed.sql` against the hosted project. It is for local s
 ## 3. Auth settings (Supabase dashboard, Authentication)
 
 - **Sign In / Providers → Email:** enabled. **Allow new users to sign up: OFF** (invite-only). Confirm email: on.
-- **Email OTP length:** 6. Keep the expiry short (the default of one hour is fine; 15 minutes is better).
-- **Email Templates → Magic Link:** paste the subject and HTML from `supabase/templates/magic_link.html` (subject: `Your Prime Project Tracker sign-in code`). The app signs people in by entering the code; the default template contains only a link, so without this change nobody can sign in.
-- **SMTP Settings:** enable custom SMTP with your provider's details, and set the sender name to the college.
+- **Password:** the minimum length is enforced by the app (8 characters); Supabase's own minimum can stay at 6.
 - **URL Configuration:** Site URL = the production address.
 
 ## 4. Create the first accounts by hand
@@ -84,7 +76,7 @@ Deploy (`vercel --prod`, or push to the production branch).
 ## 6. Check it works
 
 1. Open the site; you should land on the sign-in page.
-2. Sign in as the admin (code arrives by email). You land on `/admin`.
+2. Sign in as the admin (email and the password you set for it). You land on `/admin`.
 3. Create a department, a faculty member and a student; set the student's department, year and mentor on the Links page.
 4. Sign in as the faculty member, post an item for the student; sign in as the student, join and submit a result with a proof file; confirm it as the faculty member.
 5. Open the principal's Overview: it shows 1 confirmed result.

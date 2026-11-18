@@ -20,17 +20,19 @@ begin
     ) as t(id, email, full_name, role)
   loop
     insert into auth.users (
-      instance_id, id, aud, role, email, email_confirmed_at, created_at, updated_at,
+      instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at,
       raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous,
       confirmation_token, recovery_token, email_change_token_new, email_change
     ) values (
-      '00000000-0000-0000-0000-000000000000', rec.id, 'authenticated', 'authenticated', rec.email, now(), now(), now(),
+      '00000000-0000-0000-0000-000000000000', rec.id, 'authenticated', 'authenticated', rec.email, extensions.crypt('Demo@1234', extensions.gen_salt('bf')), now(), now(), now(),
       '{"provider":"email","providers":["email"]}', '{}', false, false, '', '', '', ''
     );
     insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
     values (gen_random_uuid(), rec.id, rec.id::text, 'email',
             json_build_object('sub', rec.id::text, 'email', rec.email)::jsonb, now(), now(), now());
-    insert into public.profiles (id, email, full_name, role) values (rec.id, rec.email, rec.full_name, rec.role);
+    insert into public.profiles (id, email, full_name, role, register_no)
+    values (rec.id, rec.email, rec.full_name, rec.role,
+            case rec.email when 'student@college.edu' then '192110001' when 'student2@college.edu' then '192110002' end);
   end loop;
 end $$;
 

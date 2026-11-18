@@ -5,6 +5,9 @@ const m = vi.hoisted(() => {
   const updateSelect = vi.fn();
   const updateEq = vi.fn(() => ({ select: updateSelect }));
   const update = vi.fn(() => ({ eq: updateEq }));
+  const selectMaybeSingle = vi.fn();
+  const selectIn = vi.fn(() => ({ maybeSingle: selectMaybeSingle }));
+  const selectEq = vi.fn(() => ({ in: selectIn }));
   return {
     getSessionProfile: vi.fn(),
     rpc: vi.fn(),
@@ -12,21 +15,24 @@ const m = vi.hoisted(() => {
     updateSelect,
     updateEq,
     update,
-    from: vi.fn(() => ({ insert: profilesInsert, update })),
+    selectMaybeSingle,
+    from: vi.fn(() => ({ insert: profilesInsert, update, select: vi.fn(() => ({ eq: selectEq })) })),
     createAuthUser: vi.fn(),
     deleteAuthUser: vi.fn(),
+    updateUserById: vi.fn(),
   };
 });
-const { getSessionProfile, rpc, profilesInsert, updateSelect, updateEq, update, from, createAuthUser, deleteAuthUser } = m;
+const { getSessionProfile, rpc, profilesInsert, updateSelect, updateEq, update, from, createAuthUser, deleteAuthUser, selectMaybeSingle, updateUserById } = m;
 
 vi.mock("@/lib/session", () => ({ getSessionProfile: m.getSessionProfile }));
 vi.mock("@/lib/supabase/server", () => ({
   createServerClient: vi.fn(async () => ({ rpc: m.rpc, from: m.from })),
-  createServiceClient: vi.fn(() => ({ auth: { admin: { createUser: m.createAuthUser, deleteUser: m.deleteAuthUser } } })),
+  createServiceClient: vi.fn(() => ({ auth: { admin: { createUser: m.createAuthUser, deleteUser: m.deleteAuthUser, updateUserById: m.updateUserById } } })),
 }));
 
 import {
   createUser,
+  resetPassword,
   setActive,
   assignMentor,
   addToGroup,
@@ -51,11 +57,15 @@ beforeEach(() => {
   updateSelect.mockResolvedValue({ data: [{ id: U1 }], error: null });
   createAuthUser.mockResolvedValue({ data: { user: { id: U1 } }, error: null });
   deleteAuthUser.mockResolvedValue({ error: null });
+  updateUserById.mockReset();
+  updateUserById.mockResolvedValue({ error: null });
+  selectMaybeSingle.mockReset();
   process.env.ALLOWED_EMAIL_DOMAIN = "college.edu";
 });
 
 const ALL_ACTIONS: [string, () => Promise<unknown>][] = [
-  ["createUser", () => createUser("a@college.edu", "A", "student")],
+  ["createUser", () => createUser("a@college.edu", "A", "student", "password1", "REG001")],
+  ["resetPassword", () => resetPassword(U1, "password1")],
   ["setActive", () => setActive(U1, false)],
   ["assignMentor", () => assignMentor(U2, U1)],
   ["addToGroup", () => addToGroup("g", U1)],
@@ -88,30 +98,74 @@ describe("admin guard", () => {
 
 describe("createUser", () => {
   it("creates the auth user and the profile and returns the id", async () => {
-    expect(await createUser(" Asha@College.edu ", "Asha", "student")).toBe(U1);
-    expect(createAuthUser).toHaveBeenCalledWith({ email: "asha@college.edu", email_confirm: true });
-    expect(profilesInsert).toHaveBeenCalledWith({ id: U1, email: "asha@college.edu", full_name: "Asha", role: "student" });
+    expect(await createUser(" Asha@College.edu ", "Asha", "student", "password1", " reg001 ")).toBe(U1);
+    expect(createAuthUser).toHaveBeenCalledWith({ email: "asha@college.edu", password: "password1", email_confirm: true });
+    expect(profilesInsert).toHaveBeenCalledWith({ id: U1, email: "asha@college.edu", full_name: "Asha", role: "student", register_no: "REG001" });
   });
   it.each(["admin", "principal", "root"])("refuses the role %s", async (role) => {
-    await expect(createUser("a@college.edu", "A", role as never)).rejects.toThrow(/role/i);
+    await expect(createUser("a@college.edu", "A", role as never, "password1")).rejects.toThrow(/role/i);
     expect(createAuthUser).not.toHaveBeenCalled();
   });
   it("refuses an email outside the college domain", async () => {
-    await expect(createUser("a@gmail.com", "A", "student")).rejects.toThrow(/college email/i);
+    await expect(createUser("a@gmail.com", "A", "student", "password1", "REG001")).rejects.toThrow(/college email/i);
     expect(createAuthUser).not.toHaveBeenCalled();
   });
   it("refuses a blank name", async () => {
-    await expect(createUser("a@college.edu", "   ", "student")).rejects.toThrow(/name/i);
+    await expect(createUser("a@college.edu", "   ", "student", "password1", "REG001")).rejects.toThrow(/name/i);
   });
   it("removes the auth user again when the profile insert fails", async () => {
     profilesInsert.mockResolvedValue({ error: { message: "nope" } });
-    await expect(createUser("a@college.edu", "A", "faculty")).rejects.toThrow();
+    await expect(createUser("a@college.edu", "A", "faculty", "password1")).rejects.toThrow();
     expect(deleteAuthUser).toHaveBeenCalledWith(U1);
   });
   it("says so when the email already has an account", async () => {
     createAuthUser.mockResolvedValue({ data: { user: null }, error: { message: "already registered", code: "email_exists" } });
-    await expect(createUser("a@college.edu", "A", "student")).rejects.toThrow(/already/i);
+    await expect(createUser("a@college.edu", "A", "student", "password1", "REG001")).rejects.toThrow(/already/i);
     expect(profilesInsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("createUser passwords and register numbers", () => {
+  it("refuses a short password", async () => {
+    await expect(createUser("a@college.edu", "A", "faculty", "short")).rejects.toThrow(/password/i);
+    expect(createAuthUser).not.toHaveBeenCalled();
+  });
+  it("requires a register number for students", async () => {
+    await expect(createUser("a@college.edu", "A", "student", "password1", "")).rejects.toThrow(/register/i);
+    await expect(createUser("a@college.edu", "A", "student", "password1", "a b")).rejects.toThrow(/register/i);
+    expect(createAuthUser).not.toHaveBeenCalled();
+  });
+  it("gives faculty no register number", async () => {
+    await createUser("f@college.edu", "F", "faculty", "password1", "REG999");
+    expect(profilesInsert).toHaveBeenCalledWith(expect.objectContaining({ role: "faculty", register_no: null }));
+  });
+  it("says so when the register number is taken, and removes the sign-in user", async () => {
+    profilesInsert.mockResolvedValue({ error: { code: "23505", message: "dup" } });
+    await expect(createUser("a@college.edu", "A", "student", "password1", "REG001")).rejects.toThrow(/register number is already/i);
+    expect(deleteAuthUser).toHaveBeenCalledWith(U1);
+  });
+});
+
+describe("resetPassword", () => {
+  it("rejects non-admins before touching anything", async () => {
+    getSessionProfile.mockResolvedValue({ id: U2, role: "faculty", fullName: "F" });
+    await expect(resetPassword(U1, "password1")).rejects.toThrow(/admin/i);
+    expect(updateUserById).not.toHaveBeenCalled();
+  });
+  it("refuses a short password and the admin's own account", async () => {
+    await expect(resetPassword(U1, "short")).rejects.toThrow(/password/i);
+    await expect(resetPassword(ADMIN.id, "password1")).rejects.toThrow(/own account/i);
+    expect(updateUserById).not.toHaveBeenCalled();
+  });
+  it("refuses accounts that are not student or faculty (no matching row)", async () => {
+    selectMaybeSingle.mockResolvedValue({ data: null });
+    await expect(resetPassword(U1, "password1")).rejects.toThrow(/cannot be changed/i);
+    expect(updateUserById).not.toHaveBeenCalled();
+  });
+  it("sets the password for a student", async () => {
+    selectMaybeSingle.mockResolvedValue({ data: { id: U1 } });
+    await resetPassword(U1, "password1");
+    expect(updateUserById).toHaveBeenCalledWith(U1, { password: "password1" });
   });
 });
 

@@ -4,7 +4,7 @@ import { UserPlus, Users } from "lucide-react";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { ActionForm } from "@/components/ActionForm";
 import { loadAdminData, type Person } from "@/lib/admin/queries";
-import { createUserAction, setActiveAction } from "./form-actions";
+import { createUserAction, resetPasswordAction, setActiveAction } from "./form-actions";
 
 export const metadata: Metadata = { title: "Accounts" };
 
@@ -33,6 +33,14 @@ export default async function AccountsPage() {
               <input id="email" name="email" type="email" className="input" required autoComplete="off" inputMode="email" />
             </div>
             <div className="field">
+              <label htmlFor="registerNo">Register number (students)</label>
+              <input id="registerNo" name="registerNo" className="input" autoComplete="off" autoCapitalize="characters" spellCheck={false} />
+            </div>
+            <div className="field">
+              <label htmlFor="password">Initial password</label>
+              <input id="password" name="password" type="text" className="input" required minLength={8} maxLength={72} autoComplete="off" />
+            </div>
+            <div className="field">
               <label htmlFor="role">Role</label>
               <select id="role" name="role" className="select" defaultValue="student">
                 <option value="student">Student</option>
@@ -42,7 +50,7 @@ export default async function AccountsPage() {
           </div>
         </ActionForm>
         <p className="hint" style={{ marginTop: "0.75rem" }}>
-          Admin and principal accounts are set up outside the app. After creating a student, set their department, year and mentor on the Links page.
+          People sign in with their email or register number and this password (at least 8 characters). Tell it to them in person and ask them to change it after signing in. Admin and principal accounts are set up outside the app. After creating a student, set their department, year and mentor on the Links page.
         </p>
       </section>
 
@@ -69,7 +77,7 @@ export default async function AccountsPage() {
                 <tr key={p.id}>
                   <td>
                     <div className="primary">{p.fullName || "No name"}</div>
-                    <div className="secondary">{p.email}</div>
+                    <div className="secondary">{p.email}{p.registerNo ? ` · ${p.registerNo}` : ""}</div>
                   </td>
                   <td data-label="Role">{ROLE[p.role]}</td>
                   <td data-label="Placement">
@@ -89,6 +97,28 @@ export default async function AccountsPage() {
                   </td>
                   <td>
                     {p.role === "student" || p.role === "faculty" ? (
+                      <div style={{ display: "grid", gap: "0.5rem" }}>
+                      <ActionForm
+                        action={resetPasswordAction}
+                        submit="Set password"
+                        pendingLabel="Saving"
+                        variant="ghost"
+                        compact
+                      >
+                        <input type="hidden" name="userId" value={p.id} />
+                        <input
+                          name="password"
+                          type="text"
+                          className="input"
+                          required
+                          minLength={8}
+                          maxLength={72}
+                          autoComplete="off"
+                          placeholder="New password"
+                          aria-label={`New password for ${p.fullName || p.email}`}
+                          style={{ minHeight: 40, width: "11rem" }}
+                        />
+                      </ActionForm>
                       <ActionForm
                         action={setActiveAction}
                         submit={p.active ? "Deactivate" : "Reactivate"}
@@ -100,6 +130,7 @@ export default async function AccountsPage() {
                         <input type="hidden" name="userId" value={p.id} />
                         <input type="hidden" name="active" value={String(!p.active)} />
                       </ActionForm>
+                      </div>
                     ) : null}
                   </td>
                 </tr>

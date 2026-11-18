@@ -1,28 +1,25 @@
 import { test, expect, type Browser, type Page } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
 
 /**
- * Smoke test of the HOSTED deployment, signing in through one-time links made with the service key
- * (the hosted free tier cannot send the code email). Run with:
- *   node --env-file=.env.deploy.local node_modules/@playwright/test/cli.js test -c playwright.prod.config.ts
+ * Smoke test of the HOSTED deployment, signing in with the demo password (email or register number).
+ * Run with: npm run test:prod   (needs DEMO_PASSWORD in .env.deploy.local)
  * It creates one extra item ("Prod smoke <stamp>") and leaves the demo data otherwise as it found it.
  */
 const BASE = process.env.APP_URL ?? "https://prime-project-tracker.vercel.app";
-const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+const PASSWORD = process.env.DEMO_PASSWORD!;
 const stamp = Date.now().toString(36);
 const title = `Prod smoke ${stamp}`;
 
-async function link(email: string) {
-  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });
-  if (error) throw error;
-  return `${BASE}/auth/callback?token_hash=${data.properties.hashed_token}`;
-}
-
-async function as(browser: Browser, email: string, home: RegExp): Promise<Page> {
+async function as(browser: Browser, identifier: string, home: RegExp): Promise<Page> {
   const ctx = await browser.newContext({ baseURL: BASE });
   const page = await ctx.newPage();
-  await page.goto(await link(email));
-  await expect(page).toHaveURL(home);
+  await page.goto(`${BASE}/login`);
+  await expect(async () => {
+    await page.getByLabel("Email or register number").fill(identifier);
+    await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(home, { timeout: 5000 });
+  }).toPass({ timeout: 30_000 });
   return page;
 }
 
@@ -31,7 +28,7 @@ test.describe.configure({ mode: "serial" });
 test("signed-out visitors go to the sign-in page, and signup is closed", async ({ page, request }) => {
   await page.goto(`${BASE}/student`);
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole("button", { name: "Send code" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
   expect((await request.get(`${BASE}/api/proof/5eedd000-0000-0000-0000-000000000001`)).status()).toBe(401);
   const signup = await request.post(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/signup`, {
     headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, "Content-Type": "application/json" },
@@ -40,13 +37,18 @@ test("signed-out visitors go to the sign-in page, and signup is closed", async (
   expect(signup.ok()).toBe(false);
 });
 
-test("an address outside the college domain is refused before any code is sent", async ({ page }) => {
+test("an address outside the college domain and a wrong password are refused", async ({ page }) => {
   await page.goto(`${BASE}/login`);
-  await page.getByLabel("College email").fill("someone@gmail.com");
   await expect(async () => {
-    await page.getByRole("button", { name: "Send code" }).click();
-    await expect(page.getByText("Use your college email address.")).toBeVisible({ timeout: 3000 });
+    await page.getByLabel("Email or register number").fill("someone@gmail.com");
+    await page.getByLabel("Password", { exact: true }).fill("whatever123");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByText("Use your college email address or your register number.")).toBeVisible({ timeout: 3000 });
   }).toPass({ timeout: 20_000 });
+  await page.getByLabel("Email or register number").fill("student@college.edu");
+  await page.getByLabel("Password", { exact: true }).fill("definitely-wrong");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByText("Could not sign in with those details.")).toBeVisible();
 });
 
 test("each role lands on its own home and is kept out of the others", async ({ browser }) => {
@@ -58,7 +60,7 @@ test("each role lands on its own home and is kept out of the others", async ({ b
   await adminPage.goto("/overview");
   await expect(adminPage.getByText(/confirmed across/)).toBeVisible();
 
-  const student = await as(browser, "student@college.edu", /\/student$/);
+  const student = await as(browser, "192110001", /\/student$/); // by register number
   await expect(student.getByText("Smart India Hackathon 2026")).toBeVisible();
   await expect(student.getByText("Confirmed", { exact: true }).first()).toBeVisible();
   await student.goto("/admin");

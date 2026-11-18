@@ -103,3 +103,11 @@ The hackathon and internship lists are read from two public Google Sheets into t
 - **Safety:** new rows are added, changed rows updated, rows that left the sheets or whose hackathon closed are removed. If a sheet comes back empty or the layout changes, nothing is changed and the call reports an error. Real events are never touched.
 - **Sheets:** the two sheet ids are in `lib/suggestions/sheets.ts`; override with `SUGGESTION_HACKATHON_SHEET_ID` / `SUGGESTION_INTERNSHIP_SHEET_ID`. They must stay shared as "anyone with the link".
 - `ALLOWED_EMAIL_DOMAIN` accepts several domains separated by commas (for example `college.edu,saveetha.ac.in`).
+
+
+## Live data (18 Nov 2026)
+
+- The demo accounts are gone from the live site: the demo admin and principal were deleted; the demo faculty and two demo students could not be deleted completely because results are never deleted by design, so they stay locked (inactive, banned, unknown password) with their old records. Nobody can sign in as them.
+- Real data: 81 learners and 4 mentors from the Prime Project list, `<name>@saveetha.ac.in` placeholder emails, one admin (`admin@saveetha.ac.in`). Initial passwords are random per account and are only in the credentials file kept outside the repository. There is no principal account yet.
+- `npm run test:prod` now reads that file through `PROD_CREDENTIALS` and changes nothing.
+- `docs/DEMO_ACCOUNTS.md` describes the local database only.

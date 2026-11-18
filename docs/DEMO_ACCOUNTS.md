@@ -1,4 +1,6 @@
-# Demo accounts
+# Demo accounts (local database only)
+
+The live site has no demo accounts any more; see `docs/deploy.md`.
 
 Sign in with email, or register number for students, plus password.
 

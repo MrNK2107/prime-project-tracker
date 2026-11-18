@@ -4,7 +4,7 @@ const m = vi.hoisted(() => ({ rpc: vi.fn(), getSessionProfile: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createServerClient: vi.fn(async () => ({ rpc: m.rpc })) }));
 vi.mock("@/lib/session", () => ({ getSessionProfile: m.getSessionProfile }));
 
-import { createItem, reviewResult, type NewItem } from "@/lib/faculty/actions";
+import { createItem, reviewResult, updateEvent, type NewItem } from "@/lib/faculty/actions";
 
 const ITEM: NewItem = {
   type: "hackathon",
@@ -81,5 +81,27 @@ describe("reviewResult", () => {
   it("refuses non-faculty", async () => {
     m.getSessionProfile.mockResolvedValue({ id: "s", role: "student", fullName: "S" });
     await expect(reviewResult("r1", "confirm", "")).rejects.toThrow(/faculty/i);
+  });
+});
+
+describe("updateEvent", () => {
+  const EDIT = { title: "  New title ", description: "", meetingUrl: "https://meet.google.com/x", startsAt: "2026-11-20T10:30", deadline: "" };
+  it("calls update_item with the cleaned fields", async () => {
+    await updateEvent("e1", EDIT);
+    expect(m.rpc).toHaveBeenCalledWith("update_item", {
+      p_item_id: "e1",
+      p_changes: { title: "New title", description: null, meeting_url: "https://meet.google.com/x", starts_at: "2026-11-20T10:30:00+05:30", deadline: null },
+    });
+  });
+  it("refuses a blank title, a non-https link and non-faculty callers without calling the database", async () => {
+    await expect(updateEvent("e1", { ...EDIT, title: " " })).rejects.toThrow(/title/i);
+    await expect(updateEvent("e1", { ...EDIT, meetingUrl: "http://x.test" })).rejects.toThrow(/https/);
+    m.getSessionProfile.mockResolvedValue({ id: "s1", role: "student", fullName: "S" });
+    await expect(updateEvent("e1", EDIT)).rejects.toThrow(/faculty/i);
+    expect(m.rpc).not.toHaveBeenCalled();
+  });
+  it("says so plainly when the database refuses", async () => {
+    m.rpc.mockResolvedValue({ data: null, error: { code: "42501", message: "x" } });
+    await expect(updateEvent("e1", EDIT)).rejects.toThrow("You cannot edit this event.");
   });
 });

@@ -28,14 +28,14 @@ async function requireFaculty() {
 }
 
 /**
- * Creates an item and invites the targeted students. The database drops any student the caller is
+ * Creates an event and invites the targeted students. The database drops any student the caller is
  * not allowed to see (so a stray id cannot reach outside your students). Meeting links must be https.
  */
 export async function createItem(input: NewItem): Promise<string> {
   await requireFaculty();
   const title = input.title.trim();
   if (!title) throw new Error("Enter a title.");
-  if (!ITEM_TYPES.includes(input.type)) throw new Error("Choose what kind of item this is.");
+  if (!ITEM_TYPES.includes(input.type)) throw new Error("Choose what kind of event this is.");
 
   let meetingUrl: string | null = null;
   if (input.meetingUrl.trim()) {
@@ -43,7 +43,7 @@ export async function createItem(input: NewItem): Promise<string> {
     if (!meetingUrl) throw new Error("The meeting link must start with https://");
   }
   if (input.groupIds.length + input.departmentIds.length + input.years.length + input.studentIds.length === 0) {
-    throw new Error("Choose who this is for: a group, department, year or specific students.");
+    throw new Error("Choose who this is for: your mentees, a group, a department, a year or specific students.");
   }
 
   const supabase = await createServerClient();
@@ -63,8 +63,37 @@ export async function createItem(input: NewItem): Promise<string> {
     p_years: input.years,
     p_student_ids: input.studentIds,
   });
-  if (error) throw new Error(error.message || "The item could not be created.");
+  if (error) throw new Error(error.message || "The event could not be created.");
   return String(data);
+}
+
+export type EventEdit = { title: string; description: string; meetingUrl: string; startsAt: string; deadline: string };
+
+/**
+ * Edits an event's wording and dates. The database allows the event's creator and a coordinator of a group
+ * the event reaches, and nobody else. Who is invited and what is required cannot change here.
+ */
+export async function updateEvent(eventId: string, input: EventEdit): Promise<void> {
+  await requireFaculty();
+  const title = input.title.trim();
+  if (!title) throw new Error("Enter a title.");
+  let meetingUrl: string | null = null;
+  if (input.meetingUrl.trim()) {
+    meetingUrl = safeHttpsUrl(input.meetingUrl);
+    if (!meetingUrl) throw new Error("The meeting link must start with https://");
+  }
+  const supabase = await createServerClient();
+  const { error } = await supabase.rpc("update_item", {
+    p_item_id: eventId,
+    p_changes: {
+      title,
+      description: input.description.trim() || null,
+      meeting_url: meetingUrl,
+      starts_at: istInputToIso(input.startsAt),
+      deadline: istInputToIso(input.deadline),
+    },
+  });
+  if (error) throw new Error(error.code === "42501" ? "You cannot edit this event." : error.message || "The event could not be saved.");
 }
 
 /** Confirms a result or sends it back with a note. The database re-checks who is allowed at this moment. */

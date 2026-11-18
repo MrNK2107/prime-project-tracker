@@ -16,6 +16,8 @@ import {
   setYearAction,
   createDepartmentAction,
   createGroupAction,
+  assignPlacementAction,
+  removePlacementAction,
 } from "../form-actions";
 
 export const metadata: Metadata = { title: "Links" };
@@ -24,6 +26,7 @@ const TABS = [
   { id: "mentors", label: "Mentors" },
   { id: "groups", label: "Groups" },
   { id: "departments", label: "Departments" },
+  { id: "placement", label: "Placement" },
 ] as const;
 
 function Options({ people, placeholder }: { people: Person[]; placeholder: string }) {
@@ -50,7 +53,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
   await connection();
   const { tab: rawTab } = await searchParams;
   const tab = TABS.some((t) => t.id === rawTab) ? (rawTab as (typeof TABS)[number]["id"]) : "mentors";
-  const { people, departments, groups } = await loadAdminData();
+  const { people, departments, groups, placement } = await loadAdminData();
 
   const students = people.filter((p) => p.role === "student" && p.active);
   const faculty = people.filter((p) => p.role === "faculty" && p.active);
@@ -132,7 +135,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
                 <ul style={{ listStyle: "none", display: "grid", gap: "0.5rem" }}>
                   {g.leads.map((l) => (
                     <li key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-                      <span className="primary" style={{ fontWeight: 650 }}>{l.name}</span>
+                      <span className="primary" style={{ fontWeight: 650 }}>{l.name} {l.coordinator && <span className="badge badge-seal" style={{ marginLeft: "0.4rem" }}>Coordinator</span>}</span>
                       <ActionForm action={removeGroupLeadAction} submit="Remove" variant="ghost" compact confirm={`Remove ${l.name} as lead of ${g.name}?`}>
                         <input type="hidden" name="groupId" value={g.id} />
                         <input type="hidden" name="facultyId" value={l.id} />
@@ -149,6 +152,10 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
                       <Options people={faculty} placeholder="Choose a faculty member" />
                     </select>
                   </Field>
+                  <label style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start", minHeight: 44, cursor: "pointer" }}>
+                    <input type="checkbox" name="coordinator" style={{ width: 18, height: 18, marginTop: 3, accentColor: "var(--brand)" }} />
+                    <span><span style={{ fontWeight: 600 }}>Coordinator</span><span className="hint" style={{ display: "block" }}>Can confirm any result in this group and edit any event that reaches it.</span></span>
+                  </label>
                 </ActionForm>
               </div>
 
@@ -181,6 +188,34 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
             </section>
           ))}
         </div>
+      )}
+
+      {tab === "placement" && (
+        <section className="panel rise" aria-labelledby="placement-title">
+          <h2 id="placement-title" className="panel-title">Hackathon and placement coordinators</h2>
+          <p className="hint" style={{ marginBottom: "0.75rem" }}>
+            A coordinator sees every student, can post events to anyone and tracks progress across the college. Confirming a result or editing someone else&apos;s event still needs another link (mentor, creator, or group coordinator).
+          </p>
+          {placement.length === 0 ? <p className="muted">No one holds this role yet.</p> : (
+            <ul style={{ listStyle: "none", display: "grid", gap: "0.5rem", marginBottom: "1rem" }}>
+              {placement.map((p) => (
+                <li key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 650 }}>{p.name}</span>
+                  <ActionForm action={removePlacementAction} submit="End role" variant="ghost" compact confirm={`End ${p.name}'s role as hackathon and placement coordinator?`}>
+                    <input type="hidden" name="facultyId" value={p.id} />
+                  </ActionForm>
+                </li>
+              ))}
+            </ul>
+          )}
+          <ActionForm action={assignPlacementAction} submit="Give the role" variant="secondary">
+            <Field id="placement-faculty" label="Faculty member">
+              <select id="placement-faculty" name="facultyId" className="select" required defaultValue="">
+                <Options people={faculty} placeholder="Choose a faculty member" />
+              </select>
+            </Field>
+          </ActionForm>
+        </section>
       )}
 
       {tab === "departments" && (

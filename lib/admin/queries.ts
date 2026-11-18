@@ -19,7 +19,7 @@ export type Department = { id: string; name: string; hod: { id: string; name: st
 export type Group = {
   id: string;
   name: string;
-  leads: { id: string; name: string }[];
+  leads: { id: string; name: string; coordinator: boolean }[];
   members: { id: string; name: string }[];
 };
 
@@ -28,19 +28,20 @@ export async function loadAdminData() {
   const supabase = await createServerClient();
   const today = todayIso();
 
-  const [profiles, years, memberships, mentorships, groupMembers, groupLeads, hods, departments, groups] = await Promise.all([
+  const [profiles, years, memberships, mentorships, groupMembers, groupLeads, hods, departments, groups, placementRows] = await Promise.all([
     supabase.from("profiles").select("id, email, register_no, full_name, role, active").order("full_name"),
     supabase.from("student_year").select("student_id, year"),
     supabase.from("department_memberships").select("student_id, department_id, valid_from, valid_to"),
     supabase.from("mentorships").select("student_id, mentor_id, valid_from, valid_to"),
     supabase.from("group_members").select("group_id, student_id, valid_from, valid_to"),
-    supabase.from("group_leads").select("group_id, faculty_id, valid_from, valid_to"),
+    supabase.from("group_leads").select("group_id, faculty_id, valid_from, valid_to, is_coordinator"),
     supabase.from("hod_assignments").select("faculty_id, department_id, valid_from, valid_to"),
     supabase.from("departments").select("id, name").order("name"),
     supabase.from("groups").select("id, name").order("name"),
+    supabase.from("placement_coordinators").select("faculty_id, valid_from, valid_to"),
   ]);
 
-  for (const r of [profiles, years, memberships, mentorships, groupMembers, groupLeads, hods, departments, groups]) {
+  for (const r of [profiles, years, memberships, mentorships, groupMembers, groupLeads, hods, departments, groups, placementRows]) {
     if (r.error) throw new Error("Could not load the admin data.");
   }
 
@@ -65,9 +66,9 @@ export async function loadAdminData() {
     groupsOf.set(m.student_id as string, [...(groupsOf.get(m.student_id as string) ?? []), g]);
     membersOf.set(g.id, [...(membersOf.get(g.id) ?? []), { id: m.student_id as string, name: name.get(m.student_id as string) ?? "" }]);
   }
-  const leadsOf = new Map<string, { id: string; name: string }[]>();
+  const leadsOf = new Map<string, { id: string; name: string; coordinator: boolean }[]>();
   for (const l of groupLeads.data ?? []) {
-    if (activeOn(l as Link, today)) leadsOf.set(l.group_id as string, [...(leadsOf.get(l.group_id as string) ?? []), { id: l.faculty_id as string, name: name.get(l.faculty_id as string) ?? "" }]);
+    if (activeOn(l as Link, today)) leadsOf.set(l.group_id as string, [...(leadsOf.get(l.group_id as string) ?? []), { id: l.faculty_id as string, name: name.get(l.faculty_id as string) ?? "", coordinator: l.is_coordinator === true }]);
   }
   const hodOf = new Map<string, { id: string; name: string }>();
   for (const h of hods.data ?? []) {
@@ -98,6 +99,9 @@ export async function loadAdminData() {
       hod: hodOf.get(d.id as string) ?? null,
       students: studentsIn.get(d.id as string) ?? 0,
     })),
+    placement: (placementRows.data ?? [])
+      .filter((p) => activeOn(p as Link, today))
+      .map((p) => ({ id: p.faculty_id as string, name: name.get(p.faculty_id as string) ?? "" })),
     groups: (groups.data ?? []).map((g): Group => ({
       id: g.id as string,
       name: g.name as string,

@@ -113,8 +113,14 @@ export async function removeFromGroup(groupId: string, studentId: string): Promi
 export async function assignHod(facultyId: string, departmentId: string): Promise<void> {
   await call("admin_assign_hod", { p_faculty: facultyId, p_department: departmentId });
 }
-export async function assignGroupLead(groupId: string, facultyId: string): Promise<void> {
-  await call("admin_assign_group_lead", { p_group: groupId, p_faculty: facultyId });
+export async function assignGroupLead(groupId: string, facultyId: string, coordinator = false): Promise<void> {
+  await call("admin_assign_group_lead", { p_group: groupId, p_faculty: facultyId, p_coordinator: coordinator });
+}
+export async function assignPlacementCoordinator(facultyId: string): Promise<void> {
+  await call("admin_assign_placement_coordinator", { p_faculty: facultyId });
+}
+export async function removePlacementCoordinator(facultyId: string): Promise<void> {
+  await call("admin_remove_placement_coordinator", { p_faculty: facultyId });
 }
 export async function removeGroupLead(groupId: string, facultyId: string): Promise<void> {
   await call("admin_remove_group_lead", { p_group: groupId, p_faculty: facultyId });

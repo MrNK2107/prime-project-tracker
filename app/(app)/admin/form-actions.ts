@@ -55,8 +55,20 @@ export async function removeFromGroupAction(_p: FormResult, d: FormData): Promis
 }
 export async function assignGroupLeadAction(_p: FormResult, d: FormData): Promise<FormResult> {
   return run(async () => {
-    await admin.assignGroupLead(s(d, "groupId"), s(d, "facultyId"));
+    await admin.assignGroupLead(s(d, "groupId"), s(d, "facultyId"), d.get("coordinator") === "on");
     return "Group lead saved.";
+  });
+}
+export async function assignPlacementAction(_p: FormResult, d: FormData): Promise<FormResult> {
+  return run(async () => {
+    await admin.assignPlacementCoordinator(s(d, "facultyId"));
+    return "Hackathon and placement coordinator saved.";
+  });
+}
+export async function removePlacementAction(_p: FormResult, d: FormData): Promise<FormResult> {
+  return run(async () => {
+    await admin.removePlacementCoordinator(s(d, "facultyId"));
+    return "Role ended.";
   });
 }
 export async function removeGroupLeadAction(_p: FormResult, d: FormData): Promise<FormResult> {

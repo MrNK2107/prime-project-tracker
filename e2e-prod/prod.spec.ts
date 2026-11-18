@@ -69,20 +69,20 @@ test("each role lands on its own home and is kept out of the others", async ({ b
   await expect(student).toHaveURL(/\/student$/);
 
   const principal = await as(browser, "principal@college.edu", /\/overview$/);
-  await expect(principal.getByText(/confirmed across 2 students/)).toBeVisible();
+  await expect(principal.getByText(/confirmed across 3 students/)).toBeVisible();
   await principal.goto("/admin");
   await expect(principal).toHaveURL(/\/overview$/);
 });
 
 test("faculty posts an item needing proof; the student submits a proof file; faculty confirms and opens the proof", async ({ browser }) => {
   const faculty = await as(browser, "faculty@college.edu", /\/faculty$/);
-  await faculty.goto("/faculty/items/new");
+  await faculty.goto("/faculty/events/new");
   await faculty.getByLabel("Title").fill(title);
   await faculty.getByLabel("Results must be confirmed").check();
   await faculty.getByLabel("Proof is required").check();
   await faculty.getByLabel("Asha Raman").check();
-  await faculty.getByRole("button", { name: "Create item" }).click();
-  await expect(faculty.getByText("Item created")).toBeVisible();
+  await faculty.getByRole("button", { name: "Create event" }).click();
+  await expect(faculty.getByText("Event created")).toBeVisible();
 
   const student = await as(browser, "student@college.edu", /\/student$/);
   const card = student.locator("article", { hasText: title });
@@ -111,7 +111,7 @@ test("faculty posts an item needing proof; the student submits a proof file; fac
 
   // Confirmed numbers update for the principal.
   const principal = await as(browser, "principal@college.edu", /\/overview$/);
-  await expect(principal.getByText(/\d+ confirmed across 2 students/)).toBeVisible();
+  await expect(principal.getByText(/\d+ confirmed across 3 students/)).toBeVisible();
 });
 
 test("a student cannot read another student's profile or proofs", async ({ browser }) => {

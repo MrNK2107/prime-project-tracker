@@ -46,7 +46,7 @@ export function ResultForm({
         setUploading(true);
         data.set("proofPath", await uploadProof(file, createClient()));
       } else if (requireProof) {
-        throw new Error("This item needs a proof file (PDF, JPG or PNG, up to 5 MB).");
+        throw new Error("This event needs a proof file (PDF, JPG or PNG, up to 5 MB).");
       }
     } catch (err) {
       setUploading(false);

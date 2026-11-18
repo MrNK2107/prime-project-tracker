@@ -21,7 +21,7 @@ export default async function ReviewPage() {
       <PageHeader title="Review" description="Results waiting for you to confirm or send back. A result only counts once it is confirmed." />
       {rows.length === 0 ? (
         <EmptyState icon={<ClipboardCheck size={22} />} title="Nothing to review">
-          When a student you mentor, or one invited to your item, submits a result, it will appear here.
+          When a student you mentor, or one invited to your event, submits a result, it will appear here.
         </EmptyState>
       ) : (
         <div className="stack">

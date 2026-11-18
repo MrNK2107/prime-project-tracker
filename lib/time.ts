@@ -11,6 +11,16 @@ export function istInputToIso(value: string): string | null {
   return iso;
 }
 
+/** Turns an ISO instant into a datetime-local value ("2026-11-20T10:30") in IST, or "" when absent. */
+export function isoToIstInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date(iso)).map((p) => [p.type, p.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
 export function formatWhen(iso: string | null | undefined): string {
   if (!iso) return "";
   return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: TIME_ZONE }).format(new Date(iso));

@@ -6,7 +6,7 @@
  * database would have let the caller see.
  */
 type Row = Record<string, unknown>;
-type Result = { data: unknown; error: null | { message: string } };
+type Result = { data: unknown; error: null | { message: string }; count?: number };
 
 export function mockSupabase(tables: Record<string, Row[]>, userId: string | null = "u-1") {
   const calls: { table: string; op: string }[] = [];
@@ -14,6 +14,7 @@ export function mockSupabase(tables: Record<string, Row[]>, userId: string | nul
   function builder(table: string) {
     let rows = [...(tables[table] ?? [])];
     let single = false;
+    let slice: [number, number] | null = null;
     const api: Record<string, unknown> = {
       select: () => api,
       eq: (c: string, v: unknown) => ((rows = rows.filter((r) => r[c] === v)), api),
@@ -21,11 +22,14 @@ export function mockSupabase(tables: Record<string, Row[]>, userId: string | nul
       in: (c: string, vs: unknown[]) => ((rows = rows.filter((r) => vs.includes(r[c]))), api),
       is: (c: string, v: unknown) => ((rows = rows.filter((r) => (r[c] ?? null) === v)), api),
       order: () => api,
+      range: (a: number, b: number) => ((slice = [a, b]), api),
       limit: (n: number) => ((rows = rows.slice(0, n)), api),
       maybeSingle: () => ((single = true), api),
       then: (resolve: (r: Result) => unknown) => {
         calls.push({ table, op: "read" });
-        return Promise.resolve(resolve({ data: single ? (rows[0] ?? null) : rows, error: null }));
+        const total = rows.length;
+        const out = slice ? rows.slice(slice[0], slice[1] + 1) : rows;
+        return Promise.resolve(resolve({ data: single ? (rows[0] ?? null) : out, error: null, count: total } as Result));
       },
     };
     return api;

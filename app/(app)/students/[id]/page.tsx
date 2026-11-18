@@ -43,9 +43,9 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
         ))}
       </dl>
 
-      <h2 style={{ marginBottom: "0.75rem" }}>Items and results</h2>
+      <h2 style={{ marginBottom: "0.75rem" }}>Events and results</h2>
       {entries.length === 0 ? (
-        <EmptyState icon={<Inbox size={22} />} title="No items yet">This student has not been invited to anything you can see.</EmptyState>
+        <EmptyState icon={<Inbox size={22} />} title="No events yet">This student has not been invited to anything you can see.</EmptyState>
       ) : (
         <div className="stack">
           {entries.map((e) => (

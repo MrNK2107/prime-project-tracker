@@ -24,4 +24,4 @@ export function ResultBadge({ state }: { state: ResultState }) {
   );
 }
 
-export const TYPE_LABEL: Record<string, string> = { hackathon: "Hackathon", internship: "Internship", event: "Event", meeting: "Meeting" };
+export const TYPE_LABEL: Record<string, string> = { hackathon: "Hackathon", internship: "Internship", event: "Other event", meeting: "Meeting" };

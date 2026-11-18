@@ -61,3 +61,13 @@ describe("isAllowedEmail", () => {
     expect(isAllowedEmail("a@college.edu", "")).toBe(false);
   });
 });
+
+describe("isAllowedEmail with several domains", () => {
+  it("accepts any listed domain and nothing else", () => {
+    const list = "college.edu, saveetha.ac.in";
+    expect(isAllowedEmail("a@saveetha.ac.in", list)).toBe(true);
+    expect(isAllowedEmail("a@college.edu", list)).toBe(true);
+    expect(isAllowedEmail("a@saveetha.ac.in.evil.com", list)).toBe(false);
+    expect(isAllowedEmail("a@evil-saveetha.ac.in", list)).toBe(false);
+  });
+});

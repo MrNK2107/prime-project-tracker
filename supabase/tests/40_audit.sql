@@ -145,9 +145,9 @@ select is(
      join pg_class c on c.oid = t.tgrelid
     where not t.tgisinternal and t.tgfoid = 'public.audit_row_change()'::regprocedure),
   array['department_memberships', 'departments', 'group_leads', 'group_members', 'groups',
-        'hod_assignments', 'invitations', 'items', 'mentorships', 'profiles', 'results',
+        'hod_assignments', 'invitations', 'items', 'mentorships', 'placement_coordinators', 'profiles', 'results',
         'student_year'],
-  'audit trigger is attached to all 12 audited tables');
+  'audit trigger is attached to all 13 audited tables');
 
 select is(
   (select count(*)::int from pg_trigger t

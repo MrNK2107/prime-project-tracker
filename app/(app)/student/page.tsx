@@ -12,7 +12,7 @@ import { listMyInvitations, type InvitationRow } from "@/lib/student/queries";
 import { formatWhen } from "@/lib/time";
 import { respondAction, submitResultAction } from "./form-actions";
 
-export const metadata: Metadata = { title: "My items" };
+export const metadata: Metadata = { title: "My events" };
 
 function RespondButtons({ row }: { row: InvitationRow }) {
   if (row.item.deadlinePassed && row.status === "invited") {
@@ -28,7 +28,7 @@ function RespondButtons({ row }: { row: InvitationRow }) {
         </ActionForm>
       )}
       {row.status !== "declined" && canChange && (
-        <ActionForm action={respondAction} submit={row.status === "joined" ? "Leave this item" : "Decline"} variant="secondary" compact confirm={row.status === "joined" ? "Leave this item? You can join again before the deadline." : undefined}>
+        <ActionForm action={respondAction} submit={row.status === "joined" ? "Leave this event" : "Decline"} variant="secondary" compact confirm={row.status === "joined" ? "Leave this event? You can join again before the deadline." : undefined}>
           <input type="hidden" name="invitationId" value={row.invitationId} />
           <input type="hidden" name="status" value="declined" />
         </ActionForm>
@@ -59,7 +59,7 @@ function ItemCard({ row, ring }: { row: InvitationRow; ring?: number }) {
         {item.deadline && <li style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}><CalendarClock size={16} aria-hidden="true" /> Reply by {formatWhen(item.deadline)}{item.deadlinePassed ? " (passed)" : ""}</li>}
         {item.meetingUrl && (
           <li style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <Video size={16} aria-hidden="true" /> <a href={item.meetingUrl} target="_blank" rel="noopener noreferrer">Open meeting link</a>
+            <Video size={16} aria-hidden="true" /> <a href={item.meetingUrl} target="_blank" rel="noopener noreferrer">{item.type === "hackathon" || item.type === "internship" ? "Open registration page" : "Open meeting link"}</a>
           </li>
         )}
         {item.requiresProof && <li style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}><Paperclip size={16} aria-hidden="true" /> Needs proof with your result</li>}
@@ -143,7 +143,7 @@ export default async function StudentHome() {
     <StudentHero name={profile?.fullName ?? ""} kinds={kinds} toReply={toAnswer.length} toFix={toFix}>
       {rows.length === 0 ? (
         <EmptyState icon={<Inbox size={22} />} title="Nothing here yet">
-          When a faculty member invites you to an item, it will appear here for you to join or decline.
+          When a faculty member invites you to an event, it will appear here for you to join or decline.
         </EmptyState>
       ) : (
         <>

@@ -42,5 +42,6 @@ export function isAllowedEmail(email: string, domain: string | undefined): boole
   if (!domain) return false;
   const parts = email.trim().toLowerCase().split("@");
   if (parts.length !== 2 || !parts[0]) return false;
-  return parts[1] === domain.trim().toLowerCase().replace(/^@/, "");
+  // One domain, or several separated by commas (for example while two are in use).
+  return domain.split(",").some((d) => parts[1] === d.trim().toLowerCase().replace(/^@/, ""));
 }

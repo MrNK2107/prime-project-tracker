@@ -197,7 +197,7 @@ describe("link actions call the matching database function", () => {
     await assignGroupLead("g", U2);
     await removeGroupLead("g", U2);
     expect(rpc).toHaveBeenNthCalledWith(1, "admin_assign_hod", { p_faculty: U2, p_department: "d" });
-    expect(rpc).toHaveBeenNthCalledWith(2, "admin_assign_group_lead", { p_group: "g", p_faculty: U2 });
+    expect(rpc).toHaveBeenNthCalledWith(2, "admin_assign_group_lead", { p_group: "g", p_faculty: U2, p_coordinator: false });
     expect(rpc).toHaveBeenNthCalledWith(3, "admin_remove_group_lead", { p_group: "g", p_faculty: U2 });
   });
   it("moveDepartment and setStudentYear", async () => {

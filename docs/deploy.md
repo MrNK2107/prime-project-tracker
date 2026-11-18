@@ -91,3 +91,15 @@ Times entered and shown in the app are India time (IST, UTC+05:30). Year promoti
 - A searchable student picker for very large lists on the admin Links page.
 - Decide whether to revoke the server-side key's ability to write or truncate `results`, and whether the admin's audit view should be limited to account and link changes (see `docs/IMPLEMENTATION_LOG.md`, Tasks 4 and 5).
 - Add the college logo and colours (they are single-place tokens in `app/globals.css`).
+
+
+## Event suggestions refresh (added 18 Nov 2026)
+
+The hackathon and internship lists are read from two public Google Sheets into the `event_suggestions` table by `GET /api/cron/refresh-suggestions`.
+
+- **Schedule:** Vercel Cron calls it daily at 01:30 UTC (07:00 IST), set in `vercel.json`.
+- **Secret:** the route refuses every request unless it carries `Authorization: Bearer $CRON_SECRET`. Set `CRON_SECRET` in Vercel (Production); Vercel Cron sends it automatically.
+- **By hand:** `curl -H "Authorization: Bearer $CRON_SECRET" https://<site>/api/cron/refresh-suggestions` returns how many suggestions were loaded and removed.
+- **Safety:** new rows are added, changed rows updated, rows that left the sheets or whose hackathon closed are removed. If a sheet comes back empty or the layout changes, nothing is changed and the call reports an error. Real events are never touched.
+- **Sheets:** the two sheet ids are in `lib/suggestions/sheets.ts`; override with `SUGGESTION_HACKATHON_SHEET_ID` / `SUGGESTION_INTERNSHIP_SHEET_ID`. They must stay shared as "anyone with the link".
+- `ALLOWED_EMAIL_DOMAIN` accepts several domains separated by commas (for example `college.edu,saveetha.ac.in`).

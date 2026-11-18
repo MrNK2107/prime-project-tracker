@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { istInputToIso, formatWhen } from "@/lib/time";
+import { istInputToIso, isoToIstInput, formatWhen } from "@/lib/time";
 import { safeHttpsUrl } from "@/lib/url";
 
 describe("istInputToIso", () => {
@@ -12,6 +12,11 @@ describe("istInputToIso", () => {
   it("shows the same wall-clock time in IST", () => {
     expect(formatWhen("2026-11-20T10:30:00+05:30")).toMatch(/10:30/);
   });
+});
+
+describe("isoToIstInput", () => {
+  it("round-trips with istInputToIso", () => expect(isoToIstInput(istInputToIso("2026-11-20T10:30"))).toBe("2026-11-20T10:30"));
+  it("is blank when absent", () => expect(isoToIstInput(null)).toBe(""));
 });
 
 describe("safeHttpsUrl", () => {

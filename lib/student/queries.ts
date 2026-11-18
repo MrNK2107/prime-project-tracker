@@ -35,7 +35,7 @@ export async function listMyInvitations(now: Date = new Date()): Promise<Invitat
   if (!me) return [];
 
   const invitations = await sb.from("invitations").select("id, item_id, student_id, status").eq("student_id", me);
-  if (invitations.error) throw new Error("Could not load your items.");
+  if (invitations.error) throw new Error("Could not load your events.");
   const invs = (invitations.data as Row[]).filter((i) => str(i.student_id) === me);
   if (invs.length === 0) return [];
 
@@ -43,7 +43,7 @@ export async function listMyInvitations(now: Date = new Date()): Promise<Invitat
     sb.from("items").select("id, title, type, description, meeting_url, starts_at, deadline, requires_confirmation, requires_proof, created_at").in("id", [...new Set(invs.map((i) => str(i.item_id)))]),
     sb.from("results").select("id, invitation_id, revision, outcome, details, proof_path, status, review_note, submitted_at").in("invitation_id", invs.map((i) => str(i.id))),
   ]);
-  if (items.error || results.error) throw new Error("Could not load your items.");
+  if (items.error || results.error) throw new Error("Could not load your events.");
 
   const item = new Map((items.data as Row[]).map((i) => [str(i.id), i]));
   const byInv = new Map<string, ResultRow[]>();

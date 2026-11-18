@@ -2,6 +2,8 @@ import "server-only";
 import { createServerClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/audit";
 import { activeOn, todayIso, type DatedLink } from "@/lib/links";
+import { getMyScope, coordinatedStudentIds } from "@/lib/faculty/scope";
+import { fetchAll } from "@/lib/supabase/paged";
 import { summarizeResults, type ResultRow, type ResultView } from "@/lib/results";
 
 /**
@@ -87,21 +89,23 @@ export async function listVisibleStudents(): Promise<StudentRow[]> {
     }));
 }
 
-/** Submitted results the caller may confirm or send back: they created the item, or are the student's mentor now. */
+/** Submitted results the caller may confirm or send back: they created the event, are the student's mentor now, or coordinate the student's group. */
 export async function listReviewQueue(): Promise<ReviewRow[]> {
   const sb = await createServerClient();
   const { data: auth } = await sb.auth.getUser();
   const me = auth?.user?.id;
   if (!me) return [];
 
-  const [results, invitations, items, profiles, mentorships] = await Promise.all([
+  const [results, invitations, items, profiles, mentorships, scope] = await Promise.all([
     sb.from("results").select("id, invitation_id, revision, outcome, details, proof_path, status, submitted_at").eq("status", "submitted").order("submitted_at"),
-    sb.from("invitations").select("id, item_id, student_id"),
-    sb.from("items").select("id, title, type, created_by, requires_proof"),
-    sb.from("profiles").select("id, full_name, email, role"),
+    fetchAll((a, b) => sb.from("invitations").select("id, item_id, student_id", { count: "exact" }).order("id").range(a, b)),
+    fetchAll((a, b) => sb.from("items").select("id, title, type, created_by, requires_proof", { count: "exact" }).order("id").range(a, b)),
+    fetchAll((a, b) => sb.from("profiles").select("id, full_name, email, role", { count: "exact" }).order("id").range(a, b)),
     sb.from("mentorships").select("student_id, mentor_id, valid_from, valid_to").eq("mentor_id", me),
+    getMyScope(),
   ]);
   check(results, invitations, items, profiles, mentorships);
+  const coordinated = coordinatedStudentIds(scope);
 
   const today = todayIso();
   const mentees = new Set((mentorships.data as Row[]).filter((m) => activeOn(m as unknown as DatedLink, today)).map((m) => str(m.student_id)));
@@ -115,7 +119,7 @@ export async function listReviewQueue(): Promise<ReviewRow[]> {
     const it = i ? item.get(str(i.item_id)) : undefined;
     if (!i || !it) continue;
     const studentId = str(i.student_id);
-    if (str(it.created_by) !== me && !mentees.has(studentId)) continue;
+    if (str(it.created_by) !== me && !mentees.has(studentId) && !coordinated.has(studentId)) continue;
     rows.push({
       resultId: str(r.id),
       studentId,
@@ -142,7 +146,7 @@ export async function listMyItems(): Promise<MyItem[]> {
 
   const [items, invitations, results] = await Promise.all([
     sb.from("items").select("id, title, type, deadline, created_by, created_at").eq("created_by", me).order("created_at", { ascending: false }),
-    sb.from("invitations").select("id, item_id, status"),
+    fetchAll((a, b) => sb.from("invitations").select("id, item_id, status", { count: "exact" }).order("id").range(a, b)),
     sb.from("results").select("invitation_id, status").eq("status", "submitted"),
   ]);
   check(items, invitations, results);

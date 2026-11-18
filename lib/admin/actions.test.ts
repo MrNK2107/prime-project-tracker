@@ -107,7 +107,18 @@ describe("createUser", () => {
     expect(createAuthUser).not.toHaveBeenCalled();
   });
   it("refuses an email outside the college domain", async () => {
-    await expect(createUser("a@gmail.com", "A", "student", "password1", "REG001")).rejects.toThrow(/college email/i);
+    await expect(createUser("a@gmail.com", "A", "student", "password1", "REG001")).rejects.toThrow(/college address/i);
+    await expect(createUser("a@gmail.com", "A", "faculty", "password1")).rejects.toThrow(/college email/i);
+    expect(createAuthUser).not.toHaveBeenCalled();
+  });
+  it("lets a student be created with a register number and no email", async () => {
+    expect(await createUser("", "Asha", "student", "password1", " 212223230072 ")).toBe(U1);
+    expect(createAuthUser).toHaveBeenCalledWith({ email: "212223230072@college.edu", password: "password1", email_confirm: true });
+    expect(profilesInsert).toHaveBeenCalledWith({ id: U1, email: "212223230072@college.edu", full_name: "Asha", role: "student", register_no: "212223230072" });
+  });
+  it("still needs an email for staff and a register number for students", async () => {
+    await expect(createUser("", "Dr X", "faculty", "password1")).rejects.toThrow(/college email/i);
+    await expect(createUser("", "Asha", "student", "password1", "")).rejects.toThrow(/register number/i);
     expect(createAuthUser).not.toHaveBeenCalled();
   });
   it("refuses a blank name", async () => {

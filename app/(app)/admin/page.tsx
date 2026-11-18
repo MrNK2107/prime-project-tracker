@@ -29,11 +29,11 @@ export default async function AccountsPage() {
               <input id="fullName" name="fullName" className="input" required autoComplete="off" />
             </div>
             <div className="field">
-              <label htmlFor="email">College email</label>
-              <input id="email" name="email" type="email" className="input" required autoComplete="off" inputMode="email" />
+              <label htmlFor="email">College email (optional for students)</label>
+              <input id="email" name="email" type="email" className="input" autoComplete="off" inputMode="email" />
             </div>
             <div className="field">
-              <label htmlFor="registerNo">Register number (students)</label>
+              <label htmlFor="registerNo">Register number (required for students)</label>
               <input id="registerNo" name="registerNo" className="input" autoComplete="off" autoCapitalize="characters" spellCheck={false} />
             </div>
             <div className="field">
@@ -50,7 +50,7 @@ export default async function AccountsPage() {
           </div>
         </ActionForm>
         <p className="hint" style={{ marginTop: "0.75rem" }}>
-          People sign in with their email or register number and this password (at least 8 characters). Tell it to them in person and ask them to change it after signing in. Admin and principal accounts are set up outside the app. After creating a student, set their department, year and mentor on the Links page.
+          Students sign in with their register number (an email is optional); staff with their email. Everyone uses this password (at least 8 characters). Tell it to them in person and ask them to change it after signing in. Admin and principal accounts are set up outside the app. After creating a student, set their department, year and mentor on the Links page.
         </p>
       </section>
 
@@ -77,7 +77,7 @@ export default async function AccountsPage() {
                 <tr key={p.id}>
                   <td>
                     <div className="primary">{p.fullName || "No name"}</div>
-                    <div className="secondary">{p.email}{p.registerNo ? ` · ${p.registerNo}` : ""}</div>
+                    <div className="secondary">{p.role === "student" ? (p.registerNo ?? "No register number") : p.email}</div>
                   </td>
                   <td data-label="Role">{ROLE[p.role]}</td>
                   <td data-label="Placement">

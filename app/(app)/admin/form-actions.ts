@@ -19,7 +19,7 @@ const s = (d: FormData, k: string) => String(d.get(k) ?? "").trim();
 export async function createUserAction(_p: FormResult, d: FormData): Promise<FormResult> {
   return run(async () => {
     await admin.createUser(s(d, "email"), s(d, "fullName"), s(d, "role") as admin.AssignableRole, String(d.get("password") ?? ""), s(d, "registerNo"));
-    return "Account created. Give them the password; they sign in with their email or register number.";
+    return "Account created. Give them the password; students sign in with their register number, staff with their email.";
   });
 }
 export async function resetPasswordAction(_p: FormResult, d: FormData): Promise<FormResult> {

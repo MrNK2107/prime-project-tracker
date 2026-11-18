@@ -34,7 +34,7 @@ function Options({ people, placeholder }: { people: Person[]; placeholder: strin
     <>
       <option value="" disabled>{placeholder}</option>
       {people.map((p) => (
-        <option key={p.id} value={p.id}>{p.fullName || p.email}</option>
+        <option key={p.id} value={p.id}>{p.fullName || p.email}{p.role === "student" && p.registerNo ? ` (${p.registerNo})` : ""}</option>
       ))}
     </>
   );
@@ -102,7 +102,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
                 <tbody>
                   {students.map((s) => (
                     <tr key={s.id}>
-                      <td><div className="primary">{s.fullName || s.email}</div><div className="secondary">{s.email}</div></td>
+                      <td><div className="primary">{s.fullName || s.email}</div><div className="secondary">{s.registerNo ?? s.email}</div></td>
                       <td data-label="Mentor">{s.mentor ? s.mentor.name : <span className="badge badge-claim">No mentor</span>}</td>
                     </tr>
                   ))}

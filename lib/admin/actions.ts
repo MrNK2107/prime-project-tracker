@@ -31,8 +31,8 @@ async function call(fn: string, args: Record<string, unknown>) {
 }
 
 /**
- * Creates a sign-in account (email + initial password) plus its profile. Students also need a register
- * number, which they can sign in with. Roles admin and principal can never be created here.
+ * Creates a sign-in account (initial password) plus its profile. Staff need a college email. Students need a register
+ * number, which is how they sign in; their email is optional. Roles admin and principal can never be created here.
  */
 export async function createUser(
   email: string,
@@ -43,9 +43,8 @@ export async function createUser(
 ): Promise<string> {
   await requireAdmin();
   if (role !== "student" && role !== "faculty") throw new Error("Only student and faculty roles can be created here.");
-  const cleanEmail = email.trim().toLowerCase();
+  let cleanEmail = email.trim().toLowerCase();
   const name = fullName.trim();
-  if (!isAllowedEmail(cleanEmail, process.env.ALLOWED_EMAIL_DOMAIN)) throw new Error("Use a college email address.");
   if (!name) throw new Error("Enter the person's name.");
   const pwProblem = passwordProblem(password);
   if (pwProblem) throw new Error(pwProblem);
@@ -53,7 +52,11 @@ export async function createUser(
   if (role === "student") {
     if (!registerNo || !isRegisterNo(registerNo)) throw new Error("Enter the student's register number (letters, digits, / or -).");
     reg = normalizeRegisterNo(registerNo);
+    // A student's register number is their identity; an email is optional. The sign-in system still needs a unique
+    // address behind the scenes, so without one it is made from the register number (never shown to anyone).
+    if (!cleanEmail) cleanEmail = `${reg.toLowerCase().replace(/[^a-z0-9]/g, "")}@${(process.env.ALLOWED_EMAIL_DOMAIN ?? "").split(",")[0].trim().replace(/^@/, "")}`;
   }
+  if (!isAllowedEmail(cleanEmail, process.env.ALLOWED_EMAIL_DOMAIN)) throw new Error(role === "student" ? "That email is not a college address. Leave it blank to use the register number alone." : "Use a college email address.");
 
   const { data, error } = await createServiceClient().auth.admin.createUser({ email: cleanEmail, password, email_confirm: true });
   if (error || !data?.user) {

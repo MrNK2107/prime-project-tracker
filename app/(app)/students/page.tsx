@@ -60,7 +60,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                   <tr key={s.id}>
                     <td>
                       <div className="primary"><Link href={`/students/${s.id}`}>{s.fullName}</Link></div>
-                      <div className="secondary">{[s.department, s.active ? null : "Deactivated"].filter(Boolean).join(" · ") || s.email}</div>
+                      <div className="secondary">{[s.registerNo, s.department, s.active ? null : "Deactivated"].filter(Boolean).join(" · ") || s.registerNo || s.email}</div>
                     </td>
                     {isFaculty && (
                       <td data-label="Why you see them">

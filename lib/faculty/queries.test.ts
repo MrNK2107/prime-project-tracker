@@ -41,7 +41,7 @@ describe("listVisibleStudents", () => {
       departments: [{ id: "d1", name: "CSE" }],
     });
     expect(await listVisibleStudents()).toEqual([
-      { id: S1, fullName: "Asha", email: "a@c.edu", active: true, year: 2, department: "CSE" },
+      { id: S1, fullName: "Asha", email: "a@c.edu", registerNo: null, active: true, year: 2, department: "CSE" },
     ]);
   });
   it("ignores an ended department link", async () => {

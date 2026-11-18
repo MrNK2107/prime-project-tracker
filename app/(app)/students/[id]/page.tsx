@@ -27,7 +27,7 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
       <Link href="/students" className="btn btn-ghost" style={{ marginBottom: "0.75rem", marginLeft: "-0.5rem" }}>
         <ArrowLeft size={18} aria-hidden="true" /> All students
       </Link>
-      <PageHeader title={student.fullName} description={student.email} />
+      <PageHeader title={student.fullName} description={student.registerNo ?? student.email} />
 
       <dl className="panel rise" style={{ display: "grid", gap: "0.75rem 2rem", gridTemplateColumns: "repeat(auto-fit, minmax(11rem, 1fr))", marginBottom: "1.5rem" }}>
         {[

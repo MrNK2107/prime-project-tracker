@@ -12,7 +12,7 @@ import { summarizeResults, type ResultRow, type ResultView } from "@/lib/results
  * Queries are flat selects joined in code so they stay simple to reason about and to test.
  */
 
-export type StudentRow = { id: string; fullName: string; email: string; active: boolean; year: number | null; department: string | null };
+export type StudentRow = { id: string; fullName: string; email: string; registerNo: string | null; active: boolean; year: number | null; department: string | null };
 
 export type ReviewRow = {
   resultId: string;
@@ -49,7 +49,7 @@ export type ProfileEntry = {
 };
 
 export type StudentProfile = {
-  student: { id: string; fullName: string; email: string; active: boolean; year: number | null; department: string | null; mentor: string | null; groups: string[] };
+  student: { id: string; fullName: string; email: string; registerNo: string | null; active: boolean; year: number | null; department: string | null; mentor: string | null; groups: string[] };
   entries: ProfileEntry[];
 };
 
@@ -63,7 +63,7 @@ function check(...results: { error: unknown }[]) {
 export async function listVisibleStudents(): Promise<StudentRow[]> {
   const sb = await createServerClient();
   const [profiles, years, memberships, departments] = await Promise.all([
-    sb.from("profiles").select("id, email, full_name, role, active").eq("role", "student").order("full_name"),
+    sb.from("profiles").select("id, email, register_no, full_name, role, active").eq("role", "student").order("full_name"),
     sb.from("student_year").select("student_id, year"),
     sb.from("department_memberships").select("student_id, department_id, valid_from, valid_to"),
     sb.from("departments").select("id, name"),
@@ -83,6 +83,7 @@ export async function listVisibleStudents(): Promise<StudentRow[]> {
       id: str(p.id),
       fullName: str(p.full_name) || str(p.email),
       email: str(p.email),
+      registerNo: (p.register_no as string | null) ?? null,
       active: p.active === true,
       year: yearOf.get(str(p.id)) ?? null,
       department: deptOf.get(str(p.id)) ?? null,
@@ -184,7 +185,7 @@ export async function listTargets() {
  */
 export async function getStudentProfile(studentId: string): Promise<StudentProfile | null> {
   const sb = await createServerClient();
-  const { data: p } = await sb.from("profiles").select("id, email, full_name, role, active").eq("id", studentId).maybeSingle();
+  const { data: p } = await sb.from("profiles").select("id, email, register_no, full_name, role, active").eq("id", studentId).maybeSingle();
   if (!p || (p as Row).role !== "student") return null;
 
   try {
@@ -246,6 +247,7 @@ export async function getStudentProfile(studentId: string): Promise<StudentProfi
       id: studentId,
       fullName: str((p as Row).full_name) || str((p as Row).email),
       email: str((p as Row).email),
+      registerNo: ((p as Row).register_no as string | null) ?? null,
       active: (p as Row).active === true,
       year: years.data && (years.data as Row[])[0] ? Number((years.data as Row[])[0].year) : null,
       department: dept ? deptName.get(str(dept.department_id)) ?? null : null,

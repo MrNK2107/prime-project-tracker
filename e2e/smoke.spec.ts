@@ -35,8 +35,8 @@ test("admin sets up, mentor posts, student submits, mentor confirms, department 
     ["Student " + stamp, studentEmail, "Student"],
   ]) {
     await page.getByLabel("Full name").fill(name);
-    await page.getByLabel("College email").fill(email);
-    if (role === "Student") await page.getByLabel("Register number (students)").fill(studentReg.toLowerCase());
+    await page.getByLabel(/^College email/).fill(email);
+    if (role === "Student") await page.getByLabel(/^Register number/).fill(studentReg.toLowerCase());
     await page.getByLabel("Initial password").fill(PASSWORD);
     await page.getByLabel("Role").selectOption({ label: role });
     await page.getByRole("button", { name: "Create account" }).click();
@@ -53,18 +53,18 @@ test("admin sets up, mentor posts, student submits, mentor confirms, department 
   await page.getByRole("button", { name: "Save head of department" }).click();
   await expect(page.getByText("Head of department saved")).toBeVisible();
 
-  await page.locator("#place-student").selectOption({ label: "Student " + stamp });
+  await page.locator("#place-student").selectOption({ label: `Student ${stamp} (${studentReg})` });
   await page.locator("#place-dept").selectOption({ label: deptName });
   await page.getByRole("button", { name: "Save department" }).click();
   await expect(page.getByText("Department saved")).toBeVisible();
 
-  await page.locator("#year-student").selectOption({ label: "Student " + stamp });
+  await page.locator("#year-student").selectOption({ label: `Student ${stamp} (${studentReg})` });
   await page.locator("#year-value").selectOption({ label: "Year 2" });
   await page.getByRole("button", { name: "Save year" }).click();
   await expect(page.getByText("Year saved")).toBeVisible();
 
   await page.goto("/admin/links?tab=mentors");
-  await page.locator("#m-student").selectOption({ label: "Student " + stamp });
+  await page.locator("#m-student").selectOption({ label: `Student ${stamp} (${studentReg})` });
   await page.locator("#m-mentor").selectOption({ label: "Mentor " + stamp });
   await page.getByRole("button", { name: "Save mentor" }).click();
   await expect(page.getByText("Mentor saved")).toBeVisible();
@@ -136,7 +136,7 @@ test("wrong passwords are refused; admin resets a password; the student changes 
   await expect(page.getByText("Could not sign in with those details.")).toBeVisible();
 
   await signIn(page, "admin@college.edu", /\/admin$/);
-  const row = page.locator("tr", { hasText: studentEmail });
+  const row = page.locator("tr", { hasText: studentReg });
   await row.getByLabel(/New password for/).fill(NEW_PASSWORD);
   await row.getByRole("button", { name: "Set password" }).click();
   await expect(row.getByText("Password changed")).toBeVisible();
@@ -330,4 +330,19 @@ test("hackathons and internships are suggestions only: nothing is posted until a
   // Students cannot read the suggestion list at all.
   const res = await page.request.get("/faculty/events/new");
   expect(res.url()).not.toMatch(/faculty\/events\/new$/);
+});
+
+test("a student needs only a register number: no email asked for, and it signs in", async ({ page }) => {
+  const reg = `NOMAIL${stamp}`.toUpperCase();
+  await signIn(page, "admin@college.edu", /\/admin$/);
+  await page.getByLabel("Full name").fill(`No Email ${stamp}`);
+  await page.getByLabel(/^Register number/).fill(reg);
+  await page.getByLabel("Initial password").fill(PASSWORD);
+  await page.getByLabel("Role").selectOption({ label: "Student" });
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("Account created")).toBeVisible();
+  // The list identifies the student by register number, not an email.
+  await expect(page.locator("tr", { hasText: `No Email ${stamp}` })).toContainText(reg);
+  await expect(page.locator("tr", { hasText: `No Email ${stamp}` })).not.toContainText("@");
+  await signIn(page, reg.toLowerCase(), /\/student$/);
 });

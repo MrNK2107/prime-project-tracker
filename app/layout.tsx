@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
+import { Source_Sans_3, Poppins } from "next/font/google";
 import "./globals.css";
 
 const sans = Source_Sans_3({
@@ -8,9 +8,10 @@ const sans = Source_Sans_3({
   display: "swap",
 });
 
-const serif = Source_Serif_4({
-  variable: "--font-source-serif",
+const display = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -20,12 +21,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1f3a6b",
+  themeColor: "#2e3192",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${sans.variable} ${serif.variable}`}>
+    <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body>{children}</body>
     </html>
   );

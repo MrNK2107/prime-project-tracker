@@ -1,31 +1,34 @@
 ---
 name: Prime Project Tracker
-description: A college records office rendered as software: calm, ruled, official, with verified work sealed and claimed work dashed.
+description: "Saveetha Clean: an indigo-drenched shell and hero with sky-blue, yellow and red taken from the college logo; verified work is solid with a seal, claimed work is dashed."
 colors:
-  ground: "#f4f6f9"
+  ground: "#f2f4fb"
   surface: "#ffffff"
-  surface-quiet: "#f9fafc"
-  ink: "#13203a"
-  ink-muted: "#46536b"
-  ink-faint: "#5f6b82"
-  rule: "#dde2ea"
-  rule-strong: "#c3cbd8"
-  brand: "#1f3a6b"
-  brand-hover: "#182f58"
-  brand-deep: "#14264a"
-  brand-tint: "#e8edf7"
+  surface-quiet: "#f8f9fe"
+  ink: "#14173a"
+  ink-muted: "#484d73"
+  ink-faint: "#5a5f85"
+  rule: "#dfe2f0"
+  rule-strong: "#c6cbe4"
+  brand: "#2e3192"
+  brand-hover: "#25287a"
+  brand-deep: "#1b1d63"
+  brand-tint: "#e9eaf8"
   brand-ink: "#ffffff"
   seal: "#16695a"
   seal-tint: "#e2f1ed"
   claim: "#7a5600"
   claim-tint: "#fbf1d6"
   claim-line: "#c99a2e"
-  danger: "#b3261e"
+  danger: "#c4221f"
   danger-tint: "#fceceb"
-  focus: "#2f6fe0"
+  focus: "#0b7db0"
+  sky: "#27aae1"
+  yellow: "#fff200"
+  red: "#e02f2f"
 typography:
   headline:
-    fontFamily: "Source Serif 4, Georgia, serif"
+    fontFamily: "Poppins, Segoe UI, system-ui, sans-serif"
     fontSize: "clamp(1.625rem, 1.3rem + 1.2vw, 2.125rem)"
     fontWeight: 600
     lineHeight: 1.2
@@ -251,3 +254,12 @@ An authored SVG: a double ring (solid outer, dotted inner) around a check, in cu
 - **Don't** add shadows to resting cards; shadows are for overlays and focus.
 - **Don't** invent the Saveetha logo or brand colours; use text and the placeholder seal until supplied.
 - **Don't** rely on colour alone for verified versus claimed; the border style and label carry it too.
+
+
+## Saveetha Clean additions (Nov 2026)
+
+- Logo colours: sky `#27aae1` (segments, avatar), yellow `#fff200` (next-step bar, active-tab underline, shell rule), red `#e02f2f` (ribbon). Read by eye from the logo; confirm against the brand sheet.
+- Headings use Poppins; body stays Source Sans 3.
+- Signature: the student ring, one segment per record, solid sky blue when confirmed and dashed yellow while a claim. Hovering a record lights its segment.
+- Slanted ribbons (skewX -14deg) echo the logo's bands; used for status labels and the sign-in motto.
+- Logo file not yet supplied: the app still shows the stand-in seal mark.

@@ -8,7 +8,7 @@
   background: var(--brand-deep);
   color: #fff;
   padding: 1.5rem 1.25rem 1.75rem;
-  border-bottom: 3px double color-mix(in srgb, #fff 28%, transparent);
+  border-bottom: 3px solid var(--yellow);
 }
 
 .brandInner {
@@ -43,6 +43,39 @@
 .tagline,
 .legal {
   display: none;
+}
+
+/* Slanted ribbons, taken from the college logo. */
+.ribbons {
+  display: none;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.ribbon {
+  display: inline-block;
+  padding: 0.35rem 1.4rem;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: skewX(-14deg);
+}
+
+.ribbon > span {
+  display: inline-block;
+  transform: skewX(14deg);
+}
+
+.ribbonYellow {
+  background: var(--yellow);
+  color: #16183a;
+}
+
+.ribbonRed {
+  background: var(--red);
+  color: #fff;
 }
 
 .formPanel {
@@ -104,7 +137,7 @@
     justify-content: space-between;
     padding: 3.5rem 3.5rem 2.5rem;
     border-bottom: 0;
-    border-right: 3px double color-mix(in srgb, #fff 28%, transparent);
+    border-right: 3px solid var(--yellow);
   }
 
   .brandInner {
@@ -128,17 +161,22 @@
     max-width: 14ch;
   }
 
+  .ribbons {
+    display: flex;
+    margin-top: 1.5rem;
+  }
+
   .tagline {
     display: block;
     margin-top: 1rem;
-    color: #d5deef;
+    color: #dcdfff;
     font-size: 1.0625rem;
     max-width: 34ch;
   }
 
   .legal {
     display: block;
-    color: #b6c3de;
+    color: #c5c8f5;
     font-size: 0.8125rem;
     max-width: 40ch;
   }

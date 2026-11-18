@@ -17,6 +17,10 @@ export default function LoginPage() {
             <p className={styles.college}>Saveetha Engineering College</p>
             <h1 className={styles.product}>Prime Project Tracker</h1>
             <p className={styles.tagline}>Hackathons, internships, events and achievements, recorded and verified in one place.</p>
+            <div className={styles.ribbons} aria-hidden="true">
+              <span className={`${styles.ribbon} ${styles.ribbonYellow}`}><span>Be the best</span></span>
+              <span className={`${styles.ribbon} ${styles.ribbonRed}`}><span>Est. 2001</span></span>
+            </div>
           </div>
         </div>
         <p className={styles.legal}>Access is by invitation. Your faculty or the college admin creates your account.</p>

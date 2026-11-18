@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Inbox, CalendarClock, Video, Paperclip, ShieldCheck } from "lucide-react";
-import { PageHeader, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
+import { StudentHero, type RingKind } from "@/components/StudentHero";
+import { getSessionProfile } from "@/lib/session";
 import { ActionForm } from "@/components/ActionForm";
 import { ResultForm } from "@/components/ResultForm";
 import { ResultBadge, TYPE_LABEL } from "@/components/ResultBadge";
@@ -35,11 +37,11 @@ function RespondButtons({ row }: { row: InvitationRow }) {
   );
 }
 
-function ItemCard({ row }: { row: InvitationRow }) {
+function ItemCard({ row, ring }: { row: InvitationRow; ring?: number }) {
   const { item } = row;
   const state = row.result ? (row.result.state === "sealed" ? "sealed" : "claimed") : undefined;
   return (
-    <article className="record rise" data-state={state} aria-labelledby={`i-${row.invitationId}`}>
+    <article className="record rise" data-state={state} data-ring={ring} tabIndex={ring === undefined ? undefined : 0} aria-labelledby={`i-${row.invitationId}`}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
         <div>
           <h3 id={`i-${row.invitationId}`} style={{ fontSize: "var(--step-1)" }}>{item.title}</h3>
@@ -111,14 +113,14 @@ function ItemCard({ row }: { row: InvitationRow }) {
   );
 }
 
-function Section({ title, rows }: { title: string; rows: InvitationRow[] }) {
+function Section({ title, rows, id, ringOf }: { title: string; rows: InvitationRow[]; id: string; ringOf: Map<string, number> }) {
   if (rows.length === 0) return null;
   return (
-    <section style={{ marginTop: "2rem" }} aria-labelledby={`s-${title}`}>
+    <section id={id} style={{ marginTop: "2rem", scrollMarginTop: "5rem" }} aria-labelledby={`s-${title}`}>
       <h2 id={`s-${title}`} style={{ marginBottom: "0.75rem" }}>
         {title} <span className="muted" style={{ fontWeight: 500 }}>({rows.length})</span>
       </h2>
-      <div className="stack">{rows.map((r) => <ItemCard key={r.invitationId} row={r} />)}</div>
+      <div className="stack">{rows.map((r) => <ItemCard key={r.invitationId} row={r} ring={ringOf.get(r.invitationId)} />)}</div>
     </section>
   );
 }
@@ -130,20 +132,26 @@ export default async function StudentHome() {
   const joined = rows.filter((r) => r.status === "joined");
   const declined = rows.filter((r) => r.status === "declined");
 
+  const profile = await getSessionProfile();
+  // One ring segment per record, in list order: solid once confirmed, dashed while it is still a claim.
+  const withResult = rows.filter((r) => r.result);
+  const ringOf = new Map(withResult.map((r, i) => [r.invitationId, i]));
+  const kinds: RingKind[] = withResult.map((r) => (r.result!.state === "sealed" ? "sealed" : "claimed"));
+  const toFix = rows.filter((r) => r.result?.state === "sent_back").length;
+
   return (
-    <>
-      <PageHeader title="My items" description="Hackathons, internships, events and meetings your faculty have invited you to." />
+    <StudentHero name={profile?.fullName ?? ""} kinds={kinds} toReply={toAnswer.length} toFix={toFix}>
       {rows.length === 0 ? (
         <EmptyState icon={<Inbox size={22} />} title="Nothing here yet">
           When a faculty member invites you to an item, it will appear here for you to join or decline.
         </EmptyState>
       ) : (
         <>
-          <Section title="Waiting for your reply" rows={toAnswer} />
-          <Section title="Joined" rows={joined} />
-          <Section title="Declined" rows={declined} />
+          <Section id="reply" title="Waiting for your reply" rows={toAnswer} ringOf={ringOf} />
+          <Section id="joined" title="Joined" rows={joined} ringOf={ringOf} />
+          <Section id="declined" title="Declined" rows={declined} ringOf={ringOf} />
         </>
       )}
-    </>
+    </StudentHero>
   );
 }
